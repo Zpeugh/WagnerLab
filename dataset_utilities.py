@@ -10,10 +10,6 @@ from mvpa2.tutorial_suite import *
 import fmri_preprocessing as fp
 
 
-#######TO Dr Wagner.  I currently am switching my implementation from doing each run 
-#######at a time to processing all runs at once, so there are bugs in the new functions
-#######and running it will not work right now because I ran out of time.
-
 # This is the single function to call to get all of the preprocessed data.
 def get_2010_preprocessed_data():
     
@@ -95,9 +91,6 @@ def get_2010_preprocessed_data():
     return dataset_dict
  
  
-
-
-
 
 
 def voxel_plot(ds, voxel_position):
