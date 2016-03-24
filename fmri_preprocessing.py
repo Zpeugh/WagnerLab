@@ -220,10 +220,6 @@ def get_design_matrix(list_of_param_matrices, num_degrees):
     design_matrix = add_columns_to_matrix(design_matrix, p_matrix)     
     design_matrix = add_columns_to_matrix(design_matrix, np.ones( (samples_per_run * num_runs,1) ))
 
-    plt.clf()
-    plt.figure(figsize=(10,6))
-    plt.imshow(design_matrix, cmap='gray', aspect='auto', interpolation='none')
-    plt.show()
   
     return design_matrix
     
@@ -296,7 +292,7 @@ def splice_ds_runs(ds, num_runs, beg_offset=0, end_offset=0):
       
     orig_run_length = ds.samples.shape[0] / num_runs  
     new_run_length = orig_run_length - beg_offset - end_offset
-    sliced_samples = np.zeros((new_run_length * num_runs, ds.samples.shape[1])) #the new combined sample space
+    sliced_samples = np.zeros((new_run_length * num_runs, ds.samples.shape[1])) 
     sliced_chunks = np.zeros(new_run_length * num_runs)
     sliced_t_coords = sliced_chunks.copy()
     sliced_t_indices = sliced_chunks.copy()    
@@ -321,7 +317,7 @@ def splice_ds_runs(ds, num_runs, beg_offset=0, end_offset=0):
         sliced_t_indices[n_start:n_start + new_run_length] = new_t_indices
     
     new_ds = Dataset(sliced_samples)    
-    new_ds.sa.chunks = sliced_chunks
+    new_ds.sa["chunks"] = sliced_chunks
     new_ds.sa.time_coords = sliced_t_coords
     new_ds.sa.time_indices = sliced_t_indices
 
