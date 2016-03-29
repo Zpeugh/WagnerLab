@@ -98,7 +98,7 @@ def get_polynomial_design_matrix(num_samples, degrees=4):
     y = np.zeros((num_samples,degrees))
     
     for i in range(1,degrees+1):       
-        y[:,i-1] = np.power(np.linspace(-1, 1, num_samples), i)        
+        y[:,i-1] = np.power(np.linspace(1, -1, num_samples), i)        
         
     return y
 
@@ -113,15 +113,15 @@ def get_polynomial_design_matrix(num_samples, degrees=4):
 ==================================================================================='''
 def detrend_data_with_design_matrix(ds, design_matrix):
     
-    raw_data = ds.samples
-    x_prime = np.transpose(design_matrix)      
-    n = np.linalg.inv(np.dot(x_prime, design_matrix) )
-    m = np.dot(x_prime, raw_data)    
+    raw_data = ds.samples                               #y = data 
+    x_prime = np.transpose(design_matrix)               #X' = X^T
+    n = np.linalg.inv(np.dot(x_prime, design_matrix) )  #n = X'X
+    m = np.dot(x_prime, raw_data)                       #m = X'y
 
-    betas = np.dot(n,m)                  #b = ((X'X)^-1)X'y
-    y_hat = np.dot(design_matrix,betas)  #y_hat = Xb
+    betas = np.dot(n,m)                                 #b = ((X'X)^-1)X'y
+    y_hat = np.dot(design_matrix,betas)                 #y_hat = Xb
     
-    ds.samples = raw_data - y_hat #residuals = y-y_hat     
+    ds.samples = raw_data - y_hat                       #residuals = y-y_hat     
 
     return ds             
 
@@ -163,10 +163,9 @@ def polynomial_matrix(samples_per_run, num_runs, num_degrees):
 ==================================================================================='''
 def constant_matrix(samples_per_run, num_runs):
     
-    c_matrix = np.ones((samples_per_run, 1))
-    design_matrix = np.zeros( (samples_per_run * num_runs , num_runs - 1) )    
-    print(design_matrix.shape)
-   
+    c_matrix = np.ones((samples_per_run, 1)) * 2.0 / 3.0
+    design_matrix = np.ones( (samples_per_run * num_runs , num_runs - 1) ) * -1.0 / 3.0
+    
     for i in range(num_runs):
         r_start = i * samples_per_run     
         r_end = r_start + samples_per_run    
@@ -322,12 +321,6 @@ def splice_ds_runs(ds, num_runs, beg_offset=0, end_offset=0):
     new_ds.sa.time_indices = sliced_t_indices
 
     return new_ds     
-
-
-
-
-
-
 
 
 
