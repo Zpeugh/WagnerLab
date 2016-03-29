@@ -163,8 +163,8 @@ def polynomial_matrix(samples_per_run, num_runs, num_degrees):
 ==================================================================================='''
 def constant_matrix(samples_per_run, num_runs):
     
-    c_matrix = np.ones((samples_per_run, 1)) * 2.0 / 3.0
-    design_matrix = np.ones( (samples_per_run * num_runs , num_runs - 1) ) * -1.0 / 3.0
+    c_matrix = np.ones((samples_per_run, 1))
+    design_matrix = np.zeros( (samples_per_run * num_runs , num_runs - 1) )
     
     for i in range(num_runs):
         r_start = i * samples_per_run     

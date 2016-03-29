@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mvpa2.tutorial_suite import *
 import fmri_preprocessing as fp
+from scipy.stats import pearsonr
 
 
 '''====================================================================================
@@ -37,7 +38,6 @@ def get_2010_preprocessed_data(num_samples=34, mask_path='masks/bigmask_3x3x3.ni
     run_path = "/FUNCTIONAL/swuabold{0}.nii"
     param_path = "/FUNCTIONAL/rp_abold{0}.txt"    
     
-    
     ##The list of subject file names with the proper sampling rate of 2.5 s/sec
     subjects = ['0ctr_14oct09ft', '0ctr_30sep09kp', '0smk_17apr09ag', '0ctr_30sep09ef', 
     '0ctr_14oct09gl', '0ctr_30sep09sh', '0smk_22apr09cc','0ctr_14oct09js', '0ctr_30sep09so', 
@@ -53,11 +53,12 @@ def get_2010_preprocessed_data(num_samples=34, mask_path='masks/bigmask_3x3x3.ni
     
     ##The dictionary to contain the 34 subjects with 3 runs each
     dataset_dict = dict()
+    offset = len(subjects) #number of subjects that don't need resampled
     
     ##store all of the normal datasets in the dictionary
     for index, subject in enumerate(subjects):
-        
-        if len(dataset_dict) / 2 >= num_samples:
+        print("Preprocessing subject {0}...".format(index))        
+        if index >= num_samples:
             return dataset_dict
         # Load in the datasets for each run, adding the mask provided.
         ds1 = fmri_dataset( base_path + subject + run_path.format(1), mask=mask_path )    
@@ -80,13 +81,14 @@ def get_2010_preprocessed_data(num_samples=34, mask_path='masks/bigmask_3x3x3.ni
         dataset_dict[ "dm_{0}".format(index) ] = dm
         dataset_dict[ "subject_{0}".format(index) ] = ds
 
-    offset = len(subjects)
+    
     
     #Resample and store all of the subjects who need resampling and place in the dataset_dict
     for index, subject in enumerate(subjects_to_resample):  
-        
-        if len(dataset_dict) / 2 >= num_samples:
+        print("Preprocessing subject {0}...".format(index + offset))  
+        if index + offset >= num_samples:
             return dataset_dict
+            
         ds1 = fmri_dataset( base_path + subject + run_path.format(1), mask=mask_path )
         ds2 = fmri_dataset( base_path + subject + run_path.format(2), mask=mask_path )
         ds3 = fmri_dataset( base_path + subject + run_path.format(3), mask=mask_path )
@@ -153,10 +155,12 @@ def get_raw_2010_datasets(num_samples=34, mask_path='masks/bigmask_3x3x3.nii', s
     
     ##The dictionary to contain the 34 subjects with 3 runs each
     dataset_dict = dict()
+    offset = len(subjects) #number of subjects that don't need resampling
     
     ##store all of the normal datasets in the dictionary
     for index, subject in enumerate(subjects):
-        if len(dataset_dict) >= num_samples:
+        print("Preprocessing subject {0}".format(index))        
+        if index >= num_samples:
             return dataset_dict
                    
         ds1 = fmri_dataset( base_path + subject + run_path.format(1), mask=mask_path )    
@@ -168,11 +172,12 @@ def get_raw_2010_datasets(num_samples=34, mask_path='masks/bigmask_3x3x3.nii', s
         ds.a = ds1.a
         dataset_dict[ "subject_{0}".format(index) ] = fp.splice_ds_runs(ds,3,38,39)
         
-    offset = len(subjects)
+   
     
     #Resample and store all of the subjects who need resampling and place in the dataset_dict
-    for index, subject in enumerate(subjects_to_resample):  
-        if len(dataset_dict) >= num_samples:
+    for index, subject in enumerate(subjects_to_resample): 
+        print("Preprocessing subject {0}".format(index + offset))       
+        if index + offset >= num_samples:
             return dataset_dict
             
         ds1 = fmri_dataset( base_path + subject + run_path.format(1), mask=mask_path )
@@ -191,6 +196,12 @@ def get_raw_2010_datasets(num_samples=34, mask_path='masks/bigmask_3x3x3.nii', s
     return dataset_dict
 
 
+'''====================================================================================
+    Plot the timeseries of a single voxel for a Dataset using matplotlib.
+    
+    ds                  The Dataset object containing samples
+    voxel_position      a number representing which voxel in the dataset to display
+======================================================================================'''    
 def voxel_plot(ds, voxel_position):
     plt.clf()    
     plt.figure(figsize=(10,6))
@@ -201,20 +212,87 @@ def voxel_plot(ds, voxel_position):
     plt.show()
 
 
+'''====================================================================================
+    Plot an (n, m) design matrix in grayscale using matplotlib
+    
+    dm          The numpy (n,m) array where n is the number of samples and m is the 
+                number of variables being regressed out.    
+======================================================================================'''    
 def show_design_matrix(dm):
-
     plt.clf()
     plt.figure(figsize=(10,6))
     plt.imshow(dm, cmap='gray', aspect='auto', interpolation='none')
     plt.show()
 
 
+'''====================================================================================
+    Export a dataset to an NiFti file.
+    
+    ds          The Dataset object to be exported
+    filename    The string of the filename    
+======================================================================================'''    
 def export_to_nifti(ds, filename):    
     img = map2nifti(ds)
     img.to_filename(filename)
+    
+
+'''====================================================================================
+    Returns     a list of all of the Dataset objects in the dictionary
+======================================================================================'''    
+def ds_dict_to_list(dataset_dict):
+    return [dsd[key] for key in dataset_dict if key.find("subject") != -1 ]
+    
+ 
+   
+'''====================================================================================
+    Get the average Pearson's correlation coefficient between two subjects
+    
+    subj1               The Dataset for subject 1.
+                       
+    subj2               The Dataset for subject 2.
+                        
+    Returns             The mean r value between all aubjects time series
+======================================================================================'''
+def average_pearsons_r(subj1, subj2):
+    x = np.transpose(subj1.samples)
+    y = np.transpose(subj2.samples)
+    
+    return np.mean( [ pearsonr(x[i], y[i])[0] for i in range(len(x))] )
 
 
 
-
-
+'''====================================================================================
+    Get the average Pearson's correlation coefficient between two subjects for all
+    possible pair combinations in the list of Datasets.
+    
+    ds_list      The iterable list of Dataset objects containing subject data. 
+                        
+    Returns      The mean value of all of the pair combinations of Pearson's r values
+======================================================================================'''
+def pearsons_ISC(ds_list):
+    
+    indexes = np.arange(len(ds_list))    
+    coeffs = []
+    for tup in itertools.combinations(indexes, 2):
+        
+        data1 = ds_list[tup[0]]
+        data2 = ds_list[tup[1]]
+        coeffs.append( average_pearsons_r(data1, data2) )
+    
+    return np.mean(coeffs)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
