@@ -33,7 +33,7 @@ def get_2010_preprocessed_data(num_samples=34, mask_path='masks/bigmask_3x3x3.ni
     correct_sr = 2.5        #The proper sampling rate in samples/sec
    
     #mask_path = 'masks/bigmask_3x3x3.nii'
-    mask_path = 'masks/aal_l_hippocampus_3x3x3.nii'
+    #mask_path = 'masks/aal_l_hippocampus_3x3x3.nii'
     base_path = '/lab/neurodata/ddw/dartmouth/2010_SP/SUBJECTS/'
     run_path = "/FUNCTIONAL/swuabold{0}.nii"
     param_path = "/FUNCTIONAL/rp_abold{0}.txt"    
@@ -57,6 +57,8 @@ def get_2010_preprocessed_data(num_samples=34, mask_path='masks/bigmask_3x3x3.ni
     
     ##store all of the normal datasets in the dictionary
     for index, subject in enumerate(subjects):
+        
+        t_0 = time.clock()          
         print("Preprocessing subject {0}...".format(index))        
         if index >= num_samples:
             return dataset_dict
@@ -80,11 +82,13 @@ def get_2010_preprocessed_data(num_samples=34, mask_path='masks/bigmask_3x3x3.ni
         ds.a = ds1.a
         dataset_dict[ "dm_{0}".format(index) ] = dm
         dataset_dict[ "subject_{0}".format(index) ] = ds
+        print (time.clock() - t_0)
 
     
     
     #Resample and store all of the subjects who need resampling and place in the dataset_dict
     for index, subject in enumerate(subjects_to_resample):  
+        t_0 = time.clock()             
         print("Preprocessing subject {0}...".format(index + offset))  
         if index + offset >= num_samples:
             return dataset_dict
@@ -111,6 +115,7 @@ def get_2010_preprocessed_data(num_samples=34, mask_path='masks/bigmask_3x3x3.ni
         ds.a = ds1.a
         dataset_dict[ "dm_{0}".format(index) ] = dm
         dataset_dict[ "subject_{0}".format(index + offset) ] = ds
+        print (time.clock() - t_0)
         
     return dataset_dict
  
@@ -160,6 +165,7 @@ def get_raw_2010_datasets(num_samples=34, mask_path='masks/bigmask_3x3x3.nii', s
     ##store all of the normal datasets in the dictionary
     for index, subject in enumerate(subjects):
         print("Preprocessing subject {0}".format(index))        
+             
         if index >= num_samples:
             return dataset_dict
                    
@@ -171,6 +177,7 @@ def get_raw_2010_datasets(num_samples=34, mask_path='masks/bigmask_3x3x3.nii', s
         
         ds.a = ds1.a
         dataset_dict[ "subject_{0}".format(index) ] = fp.splice_ds_runs(ds,3,38,39)
+        
         
    
     
@@ -240,24 +247,24 @@ def export_to_nifti(ds, filename):
     Returns     a list of all of the Dataset objects in the dictionary
 ======================================================================================'''    
 def ds_dict_to_list(dataset_dict):
-    return [dsd[key] for key in dataset_dict if key.find("subject") != -1 ]
+    return [dataset_dict[key] for key in dataset_dict if key.find("subject") != -1 ]
     
  
    
 '''====================================================================================
-    Get the average Pearson's correlation coefficient between two subjects
+    The average absolute valued Pearson's correlation coefficient between two subjects
     
     subj1               The Dataset for subject 1.
                        
     subj2               The Dataset for subject 2.
                         
-    Returns             The mean r value between all aubjects time series
+    Returns             The mean |r| value between all aubjects time series
 ======================================================================================'''
 def average_pearsons_r(subj1, subj2):
     x = np.transpose(subj1.samples)
     y = np.transpose(subj2.samples)
     
-    return np.mean( [ pearsonr(x[i], y[i])[0] for i in range(len(x))] )
+    return np.mean( [ abs(pearsonr(x[i], y[i])[0]) for i in range(len(x))] )
 
 
 
@@ -267,16 +274,20 @@ def average_pearsons_r(subj1, subj2):
     
     ds_list      The iterable list of Dataset objects containing subject data. 
                         
-    Returns      The mean value of all of the pair combinations of Pearson's r values
+    Returns      The mean value of all of the pair combinations of Pearson's |r| values
 ======================================================================================'''
 def pearsons_ISC(ds_list):
     
-    indexes = np.arange(len(ds_list))    
+    dl = ds_list
+    if (ds_list.__class__ is dict):
+        dl = ds_dict_to_list(ds_list)
+    
+    indexes = np.arange(len(dl))    
     coeffs = []
     for tup in itertools.combinations(indexes, 2):
         
-        data1 = ds_list[tup[0]]
-        data2 = ds_list[tup[1]]
+        data1 = dl[tup[0]]
+        data2 = dl[tup[1]]
         coeffs.append( average_pearsons_r(data1, data2) )
     
     return np.mean(coeffs)
@@ -284,11 +295,46 @@ def pearsons_ISC(ds_list):
     
     
     
+'''====================================================================================
+    ***********WARNING TAKES A VERY LONG TIME.  ~9 hours for full dataset******** 
+    
+    Get the voxel_wise Pearson's correlation coefficient between two subjects for all
+    possible pair combinations in the list of Datasets.
+    
+    ds_list      The list or dictionary of Dataset objects containing subject data. 
+                        
+    Returns      The mean value of all of the pair combinations of Pearson's |r| values
+======================================================================================'''    
+def voxelwise_pearsons_ISC(ds_list):
+    
+    dl = ds_list
+    if (ds_list.__class__ is dict):
+        dl = ds_dict_to_list(ds_list)
+        
+    indexes = np.arange(len(dl))   
+    coeffs = []
+    voxel_coeffs = []
+    tuple_combos = list(itertools.combinations(indexes, 2))
+    
+    #for each voxel position in the subject
+    for i in range(dl[0].shape[1]):  
+        print(i)        
+        voxel_coeffs = []        
+        for tup in tuple_combos:        
+            data1 = dl[tup[0]][:,i:i+1]
+            data2 = dl[tup[1]][:,i:i+1]
+            #print(pearsonr(data1, data2)[0])
+            voxel_coeffs.append( abs(pearsonr(data1, data2)[0]) )            
+      
+        coeffs.append(np.mean(voxel_coeffs))        
+     
+    return coeffs
     
     
     
-    
-    
+    t_0 = time.clock()
+    dsd = multithreaded.get_2010_preprocessed_data()
+    print( time.clock() - t_0)
     
     
     
