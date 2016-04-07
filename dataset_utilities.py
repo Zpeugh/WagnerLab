@@ -220,6 +220,21 @@ def voxel_plot(ds, voxel_position):
 
 
 '''====================================================================================
+    Plot the timeseries of a single voxel for a Dataset using matplotlib.
+    
+    ds                  The Dataset object containing samples
+    voxel_position      a number representing which voxel in the dataset to display
+======================================================================================'''    
+def fourier_plot(ds, voxel_position):
+    plt.clf()    
+    plt.figure(figsize=(10,6))
+    plt.plot(np.fft.fft(np.transpose(ds.samples)[voxel_position]))
+    plt.title("Timeseries for voxel {0}".format(voxel_position))
+    plt.axvline(211, color='r', linestyle='--')
+    plt.axvline(422, color='r', linestyle='--')
+    plt.show()
+
+'''====================================================================================
     Plot an (n, m) design matrix in grayscale using matplotlib
     
     dm          The numpy (n,m) array where n is the number of samples and m is the 
@@ -332,13 +347,12 @@ def voxelwise_pearsons_ISC(ds_list):
     
     
     
-    t_0 = time.clock()
-    dsd = multithreaded.get_2010_preprocessed_data()
-    print( time.clock() - t_0)
     
     
     
     
+    
+
     
     
 
