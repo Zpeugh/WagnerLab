@@ -265,7 +265,7 @@ def combineRuns(ds_list, sample_rate=0):
     combined_ds = Dataset( np.concatenate(ds_tuple) ) 
         
     total_samples = combined_ds.shape[0]
-        
+    
     combined_ds.fa["voxel_indices"] = ds_list[0].fa.voxel_indices         
     combined_ds.sa["chunks"] = np.concatenate(chunks_tuple)
     combined_ds.sa["time_indices"] = np.arange(total_samples)
@@ -317,9 +317,9 @@ def splice_ds_runs(ds, num_runs, beg_offset=0, end_offset=0):
     
     new_ds = Dataset(sliced_samples)    
     new_ds.sa["chunks"] = sliced_chunks
-    new_ds.sa.time_coords = sliced_t_coords
-    new_ds.sa.time_indices = sliced_t_indices
-
+    new_ds.sa["time_coords"] = sliced_t_coords
+    new_ds.sa["time_indices"] = sliced_t_indices
+    new_ds.fa["voxel_indices"] = ds.fa["voxel_indices"]
     return new_ds     
 
 

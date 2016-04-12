@@ -197,7 +197,7 @@ def get_raw_2010_datasets(num_samples=34, mask_path='masks/bigmask_3x3x3.nii', s
         
         ds = fp.combineRuns([ds1, ds2, ds3],correct_sr)        
         
-        ds.a = ds1.a
+        ds.a.mapper = ds1.a.mapper
         dataset_dict["subject_{0}".format(index + offset)] = fp.splice_ds_runs(ds,3,38,39)
         
     return dataset_dict
@@ -346,7 +346,13 @@ def voxelwise_pearsons_ISC(ds_list):
     return coeffs
     
     
-    
+
+ 
+def combine_datasets(dslist):
+
+    for ds in dslist:
+
+        voxel1 = ds[:,0]            
     
     
     
