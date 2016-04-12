@@ -62,12 +62,9 @@ def get_ds(subject,index, mask_path, degrees):
       
         dm = fp.get_design_matrix([params1, params2, params3], 1)
         ds = fp.combineRuns([ds1, ds2, ds3],CORRECT_SR)
-        
-        print(ds.fa)
-        ds = fp.detrend_data_with_design_matrix(ds, dm)   
-                    
+
+        ds = fp.detrend_data_with_design_matrix(ds, dm) 
         ds = fp.splice_ds_runs(ds,3,38,39)
-        print(ds.fa) 
         
         zscore(ds, chunks_attr="chunks")
         
@@ -120,8 +117,6 @@ def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.n
                   
        
  
-
-
 
     
  

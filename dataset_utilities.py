@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from mvpa2.tutorial_suite import *
 import fmri_preprocessing as fp
 from scipy.stats import pearsonr
+from mvpa2.measures.searchlight import sphere_searchlight
 
 
 '''====================================================================================
@@ -347,15 +348,54 @@ def voxelwise_pearsons_ISC(ds_list):
     
     
 
- 
+'''====================================================================================
+    Takes n datasets with v voxels and t time samples each, and creates a numpy array 
+    with shape (n, v, t) and inserts it into a new Dataset object with the same voxel
+    indices as before. 
+    
+    ds_list      The list of Dataset objects containing subject data. 
+                        
+    Returns      A new Dataset object with all of the datasets combined
+======================================================================================'''     
 def combine_datasets(dslist):
+    
+    num_samples = dslist[0].shape[0]
+    num_voxels = dslist[0].shape[1]
+    combined_ds = []
+    for row, subject in enumerate(dslist):
+        combined_ds.append(np.zeros((num_voxels,num_samples)))
+        data = np.transpose(subject.samples)
+        for column, voxel in enumerate(data):
+            combined_ds[row][column] = voxel
+    ds = Dataset(np.array(combined_ds))
+    ds.a.mapper = dslist[0].a.mapper
+    ds.fa["voxel_indices"] = dslist[0].fa.voxel_indices
+    ds.sa.clear()
+    ds.sa["subject"] = np.arange(len(dslist))       
+    return ds
 
-    for ds in dslist:
 
-        voxel1 = ds[:,0]            
+
+# TODO: Need to implement multiple measures which take Datasets of shape
+# TODO: (n, v, t) and output a scalar correlation between the n subjects
+def fake_measure(ds):
+    print(ds.shape)
+    return 2
     
+'''====================================================================================
+    Takes a dataset of shape (n, v, t) where n is number of subjects, v is number
+    of voxels, and t is number of time samples for each subject.  Runs a parallel
+    searchlight analysis on all of the subjects given the metric input.
     
+    ds          The Dataset object containing all of the subjects runs
+                        
+    Returns      The results of the searchlight
+======================================================================================''' 
+def run_searchlight(ds, metric='correlation', radius=3, nproc=None):
     
+    sl = sphere_searchlight(fake_measure, radius=radius, nproc=nproc)
+    
+    return sl(ds)
     
     
 
