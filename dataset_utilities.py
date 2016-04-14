@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from mvpa2.tutorial_suite import *
 import fmri_preprocessing as fp
 from scipy.stats import pearsonr
+from scipy.spatial.distance import pdist
 from mvpa2.measures.searchlight import sphere_searchlight
 
 
@@ -274,13 +275,14 @@ def ds_dict_to_list(dataset_dict):
                        
     subj2               The Dataset for subject 2.
                         
-    Returns             The mean |r| value between all aubjects time series
+    Returns             The mean r value between all aubjects time series.  Negative
+                        correlations are counted as 0
 ======================================================================================'''
 def average_pearsons_r(subj1, subj2):
     x = np.transpose(subj1.samples)
     y = np.transpose(subj2.samples)
     
-    return np.mean( [ abs(pearsonr(x[i], y[i])[0]) for i in range(len(x))] )
+    return np.mean( [ max(pearsonr(x[i], y[i])[0], 0) for i in range(len(x))] )
 
 
 
@@ -292,24 +294,24 @@ def average_pearsons_r(subj1, subj2):
                         
     Returns      The mean value of all of the pair combinations of Pearson's |r| values
 ======================================================================================'''
-def pearsons_ISC(ds_list):
+def pearsons_ISC(ds):
     
-    dl = ds_list
-    if (ds_list.__class__ is dict):
-        dl = ds_dict_to_list(ds_list)
-    
-    indexes = np.arange(len(dl))    
-    coeffs = []
+    indexes = np.arange(ds.shape[0])    
+    sum_coeffs = 0
+    i = 0
     for tup in itertools.combinations(indexes, 2):
-        
-        data1 = dl[tup[0]]
-        data2 = dl[tup[1]]
-        coeffs.append( average_pearsons_r(data1, data2) )
+        i += 1
+        data1 = ds[tup[0]]
+        data2 = ds[tup[1]]
+        sum_coeffs += average_pearsons_r(data1, data2)
     
-    return np.mean(coeffs)
+    return sum_coeffs / float(i)
     
     
-    
+def pearsons_average(ds):
+    return 1 - np.mean(pdist(np.mean(ds.samples, axis=1), metric='correlation'))
+
+
     
 '''====================================================================================
     ***********WARNING TAKES A VERY LONG TIME.  ~9 hours for full dataset******** 
@@ -379,8 +381,7 @@ def combine_datasets(dslist):
 # TODO: Need to implement multiple measures which take Datasets of shape
 # TODO: (n, v, t) and output a scalar correlation between the n subjects
 def fake_measure(ds):
-    print(ds.shape)
-    return 2
+    return np.mean(ds[0][0])
     
 '''====================================================================================
     Takes a dataset of shape (n, v, t) where n is number of subjects, v is number
@@ -393,9 +394,13 @@ def fake_measure(ds):
 ======================================================================================''' 
 def run_searchlight(ds, metric='correlation', radius=3, nproc=None):
     
-    sl = sphere_searchlight(fake_measure, radius=radius, nproc=nproc)
+    sl = sphere_searchlight(pearsons_average, radius=radius, nproc=nproc)
     
-    return sl(ds)
+    searched_ds = sl(ds)
+    searched_ds.fa = ds.fa
+    searched_ds.a = ds.a    
+    
+    return searched_ds
     
     
 
