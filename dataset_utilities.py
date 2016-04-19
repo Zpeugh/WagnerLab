@@ -267,88 +267,19 @@ def ds_dict_to_list(dataset_dict):
     return [dataset_dict[key] for key in dataset_dict if key.find("subject") != -1 ]
     
  
-   
-'''====================================================================================
-    The average absolute valued Pearson's correlation coefficient between two subjects
-    
-    subj1               The Dataset for subject 1.
-                       
-    subj2               The Dataset for subject 2.
-                        
-    Returns             The mean r value between all aubjects time series.  Negative
-                        correlations are counted as 0
-======================================================================================'''
-def average_pearsons_r(subj1, subj2):
-    x = np.transpose(subj1.samples)
-    y = np.transpose(subj2.samples)
-    
-    return np.mean( [ max(pearsonr(x[i], y[i])[0], 0) for i in range(len(x))] )
+  
 
-
-
-'''====================================================================================
-    Get the average Pearson's correlation coefficient between two subjects for all
-    possible pair combinations in the list of Datasets.
-    
-    ds_list      The iterable list of Dataset objects containing subject data. 
-                        
-    Returns      The mean value of all of the pair combinations of Pearson's |r| values
-======================================================================================'''
-def pearsons_ISC(ds):
-    
-    indexes = np.arange(ds.shape[0])    
-    sum_coeffs = 0
-    i = 0
-    for tup in itertools.combinations(indexes, 2):
-        i += 1
-        data1 = ds[tup[0]]
-        data2 = ds[tup[1]]
-        sum_coeffs += average_pearsons_r(data1, data2)
-    
-    return sum_coeffs / float(i)
-    
-    
 def pearsons_average(ds):
+    '''
+        Given a dataset with shape (s, v, t) where 
+            s is the number of subjects
+            v is the variable number of voxels in each subject
+            t is the constant number of time series for each voxel
+        This function will average the across the voxels and then compute all combinations
+        of pairwise pearsons correlations between subjects s.  The mean of this is returned.
+    '''
     return 1 - np.mean(pdist(np.mean(ds.samples, axis=1), metric='correlation'))
 
-
-    
-'''====================================================================================
-    ***********WARNING TAKES A VERY LONG TIME.  ~9 hours for full dataset******** 
-    
-    Get the voxel_wise Pearson's correlation coefficient between two subjects for all
-    possible pair combinations in the list of Datasets.
-    
-    ds_list      The list or dictionary of Dataset objects containing subject data. 
-                        
-    Returns      The mean value of all of the pair combinations of Pearson's |r| values
-======================================================================================'''    
-def voxelwise_pearsons_ISC(ds_list):
-    
-    dl = ds_list
-    if (ds_list.__class__ is dict):
-        dl = ds_dict_to_list(ds_list)
-        
-    indexes = np.arange(len(dl))   
-    coeffs = []
-    voxel_coeffs = []
-    tuple_combos = list(itertools.combinations(indexes, 2))
-    
-    #for each voxel position in the subject
-    for i in range(dl[0].shape[1]):  
-        print(i)        
-        voxel_coeffs = []        
-        for tup in tuple_combos:        
-            data1 = dl[tup[0]][:,i:i+1]
-            data2 = dl[tup[1]][:,i:i+1]
-            #print(pearsonr(data1, data2)[0])
-            voxel_coeffs.append( abs(pearsonr(data1, data2)[0]) )            
-      
-        coeffs.append(np.mean(voxel_coeffs))        
-     
-    return coeffs
-    
-    
 
 '''====================================================================================
     Takes n datasets with v voxels and t time samples each, and creates a numpy array 
@@ -376,12 +307,6 @@ def combine_datasets(dslist):
     ds.sa["subject"] = np.arange(len(dslist))       
     return ds
 
-
-
-# TODO: Need to implement multiple measures which take Datasets of shape
-# TODO: (n, v, t) and output a scalar correlation between the n subjects
-def fake_measure(ds):
-    return np.mean(ds[0][0])
     
 '''====================================================================================
     Takes a dataset of shape (n, v, t) where n is number of subjects, v is number
@@ -401,9 +326,6 @@ def run_searchlight(ds, metric='correlation', radius=3, nproc=None):
     searched_ds.a = ds.a    
     
     return searched_ds
-    
-    
-
     
     
 
