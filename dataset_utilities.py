@@ -11,6 +11,7 @@ import fmri_preprocessing as fp
 from scipy.stats import pearsonr
 from scipy.spatial.distance import pdist
 from mvpa2.measures.searchlight import sphere_searchlight
+from fastdtw import fastdtw
 
 
 '''====================================================================================
@@ -268,17 +269,51 @@ def ds_dict_to_list(dataset_dict):
     
  
   
-
+'''=======================================================================================
+    Given a dataset with shape (s, v, t) where 
+        s is the number of subjects
+        v is the number of voxels in each subject
+        t is the constant number of time series for each voxel
+    This function will average across the voxels and then compute all combinations
+    of pairwise pearsons correlations between subjects s.  The mean of this is returned.
+======================================================================================='''
 def pearsons_average(ds):
-    '''
-        Given a dataset with shape (s, v, t) where 
-            s is the number of subjects
-            v is the variable number of voxels in each subject
-            t is the constant number of time series for each voxel
-        This function will average the across the voxels and then compute all combinations
-        of pairwise pearsons correlations between subjects s.  The mean of this is returned.
-    '''
+  
     return 1 - np.mean(pdist(np.mean(ds.samples, axis=1), metric='correlation'))
+
+
+'''=======================================================================================
+    Given a dataset with shape (s, v, t) where 
+        s is the number of subjects
+        v is the number of voxels in each subject
+        t is the constant number of time series for each voxel
+    This function will average across the voxels and then compute all combinations
+    of pairwise euclidean distances between subjects s.  The mean of this is returned.
+======================================================================================='''
+def euclidean_average(ds):  
+    return np.mean(pdist(np.mean(ds.samples, axis=1), metric='euclidean'))
+
+
+
+'''=======================================================================================
+    Given a dataset with shape (s, v, t) where 
+        s is the number of subjects
+        v is the number of voxels in each subject
+        t is the constant number of time series for each voxel
+    This function will average across the voxels and then compute all combinations
+    of pairwise dynamic time warped distances between subjects s. The mean of this is returned.
+======================================================================================='''
+def dtw_average(ds):	
+    X = np.mean(ds.samples, axis=1)
+    return np.mean(pdist(X, lambda u, v: fastdtw(u, v)[0]))
+
+'''====================================================================================
+    This should take the mean accross the searchlight of voxels, then look through 
+    all n voxels at time t, and return argmax(), i.e the voxel coordinate of the 
+    'most activated' location for that time.
+======================================================================================''' 
+def maximum_time():
+    return 1        
 
 
 '''====================================================================================
@@ -307,6 +342,37 @@ def combine_datasets(dslist):
     ds.sa["subject"] = np.arange(len(dslist))       
     return ds
 
+
+'''====================================================================================
+    Takes n datasets with v voxels and t time samples each, and creates a numpy array 
+    with shape (n, v, t) and inserts it into a new Dataset object with the same voxel
+    indices as before. 
+    
+    ds_list      The list of Dataset objects containing subject data. 
+                        
+    Returns      A new Dataset object with all of the datasets transposed and combined
+======================================================================================'''     
+def combine_and_transpose_datasets(dslist):
+    
+    num_samples = dslist[0].shape[0]
+    num_voxels = dslist[0].shape[1]
+    combined_ds = []
+    for row, subject in enumerate(dslist):
+        combined_ds.append(np.zeros((num_samples, num_voxels)))
+        for column, voxel in enumerate(subject.samples):
+            combined_ds[row][column] = voxel
+    ds = Dataset(np.array(combined_ds))
+    ds.a.mapper = dslist[0].a.mapper
+    ds.fa["time_indices"] = np.arange(num_samples) 
+    ds.fa.clear()
+    ds.sa["subject"] = np.arange(len(dslist))       
+    return ds
+
+    
+    
+def fake_measure(ds):
+    print(ds.shape)
+    return 1
     
 '''====================================================================================
     Takes a dataset of shape (n, v, t) where n is number of subjects, v is number
@@ -317,9 +383,17 @@ def combine_datasets(dslist):
                         
     Returns      The results of the searchlight
 ======================================================================================''' 
-def run_searchlight(ds, metric='correlation', radius=3, nproc=None):
+def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=58):
     
-    sl = sphere_searchlight(pearsons_average, radius=radius, nproc=nproc)
+    measure = pearsons_average
+   
+    if metric == 'euclidean':
+        measure = euclidean_average
+    if metric == 'dtw':
+        measure = dtw_average
+        
+    sl = sphere_searchlight(measure, radius=radius, nproc=nproc)    
+    #sl = sphere_searchlight(fake_measure, radius=radius, center_ids=center_ids, nproc=nproc)
     
     searched_ds = sl(ds)
     searched_ds.fa = ds.fa
@@ -327,5 +401,45 @@ def run_searchlight(ds, metric='correlation', radius=3, nproc=None):
     
     return searched_ds
     
+
+#Takes a dataset and searches at each time point for the k most active regions
+def find_active_regions(ds):
+    data = ds.samples
+    voxels = []
+    for t_slice in data:
+        voxels.append(ds.fa.voxel_indices[np.argmax(t_slice)])                    
+    return voxels
+
+## TODO:  First run all 34 subjects through a searchlight of radius r, averaging
+## TODO:  the voxel space and putting the means back in the voxel centers, to adjust
+## TODO:  for artifact detection, anatomical difference, and motion.  Then,  
+## TODO:  find out a way to use Searchlight and create a 3D voxel_space which is
+## TODO:  just linear. Then only allow a radius of 1, so the parallelization happens
+## TODO:  across 633 time points.  The distance measure should take in a dataset of
+## TODO:  shape (34, 1, 96068), and return the voxel index [x, y, z] of the maximum
+## TODO:  average searchlight.  Or you could write your own shit and parallelize it.
+
     
+#==============================================================================
+#     
+# def run_spatio_temporal_searchlight(ds, metric='correlation', s_rad=2, t_rad=2, nproc=58):
+#     
+#     measure = pearsons_average
+#    
+#     if metric == 'euclidean':
+#         measure = euclidean_average
+#     if metric == 'dtw':
+#         measure = dtw_average
+#         
+#     sl = Searchlight(measure, IndexQueryEngine( voxel_indices = Sphere(radius),
+#                                                 time_attr = Sphere(r_rad) ),
+#                                                 nroc = nproc )
+#     
+#     searched_ds = sl(ds)
+#     searched_ds.fa = ds.fa
+#     searched_ds.a = ds.a    
+#     
+#     return searched_ds
+#     
+#==============================================================================
 
