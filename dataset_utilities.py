@@ -12,6 +12,7 @@ from scipy.stats import pearsonr
 from scipy.spatial.distance import pdist
 from mvpa2.measures.searchlight import sphere_searchlight
 from fastdtw import fastdtw
+import rcca
 
 
 '''====================================================================================
@@ -279,7 +280,7 @@ def ds_dict_to_list(dataset_dict):
 ======================================================================================='''
 def pearsons_average(ds):
   
-    return 1 - np.mean(pdist(np.mean(ds.samples, axis=1), metric='correlation'))
+    return 1 - np.mean( pdist(np.mean(ds.samples, axis=1), metric='correlation') )
 
 
 '''=======================================================================================
@@ -374,6 +375,38 @@ def fake_measure(ds):
     print(ds.shape)
     return 1
     
+    
+def cca(ds):
+    num_subj = ds.shape[0]
+    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
+    cca.train([subj.T for subj in ds.samples]) 
+    return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
+    
+    
+#    corrs = []
+#    for i in range(num_subj-1):
+#        for j in range(i+1, num_subj):   
+#            u = ds.samples[i,:,:].T
+#            v = ds.samples[j,:,:].T                
+#            cca.train([u, v])
+#            corrs.append(cca.cancorrs[0])        
+#    return np.mean(corrs)
+    
+    
+    
+#takes a sphere through a subject with boolean activation s and returns the number
+# of voxels in that where reported as active for each time series. Returns an array
+# of shape (n, t) where n is the number of active voxels and t is the fixed number of
+# samples over time.
+def count_active(ds):
+    #return 1
+    return np.sum(ds.samples.mask, axis=1)
+    
+    
+def get_most_active_indices(ds):
+    k = 1    
+    #return np.argsort(ds)[:,-k:]
+    return np.argmax(ds, axis=1)
 '''====================================================================================
     Takes a dataset of shape (n, v, t) where n is number of subjects, v is number
     of voxels, and t is number of time samples for each subject.  Runs a parallel
@@ -384,14 +417,16 @@ def fake_measure(ds):
     Returns      The results of the searchlight
 ======================================================================================''' 
 def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=58):
-    
-    measure = pearsons_average
-   
+
     if metric == 'euclidean':
         measure = euclidean_average
-    if metric == 'dtw':
+    elif metric == 'dtw':
         measure = dtw_average
-        
+    elif metric == 'cca':
+        measure = cca
+    else:
+        measure = pearsons_average
+   
     sl = sphere_searchlight(measure, radius=radius, nproc=nproc)    
     #sl = sphere_searchlight(fake_measure, radius=radius, center_ids=center_ids, nproc=nproc)
     
@@ -403,12 +438,38 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=5
     
 
 #Takes a dataset and searches at each time point for the k most active regions
-def find_active_regions(ds):
-    data = ds.samples
-    voxels = []
-    for t_slice in data:
-        voxels.append(ds.fa.voxel_indices[np.argmax(t_slice)])                    
-    return voxels
+#def find_active_regions(ds):
+#    data = ds.samples
+#    voxels = []
+#    for t_slice in data:
+#        voxels.append(ds.fa.voxel_indices[np.argmax(t_slice)])                    
+#    return voxels
+
+# takes a dataset and returns the coordinates of its 5 most activated regions per time
+# point.  The shape of the resulting array is (t, 5, 3) where t is number of time series
+def find_active_regions(ds, sd_threshold=3.0):   
+    
+    ds_copy = ds.copy()
+    ds_copy.samples = np.ma.masked_greater(ds.samples, sd_threshold)
+    sl = sphere_searchlight(count_active, radius=3, nproc=58)
+    
+    searched_ds = sl(ds_copy)
+    return searched_ds
+#    results = []
+#    voxel_indices = ds.fa.voxel_indices
+#    for row in searched_ds:
+#        top_five = []
+#        for entry in row:
+#            top_five.append(voxel_indices[entry])
+#        results.append(top_five)
+#    return np.array(results)
+    
+
+
+
+
+
+
 
 ## TODO:  First run all 34 subjects through a searchlight of radius r, averaging
 ## TODO:  the voxel space and putting the means back in the voxel centers, to adjust
