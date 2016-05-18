@@ -283,6 +283,32 @@ def pearsons_average(ds):
     return 1 - np.mean( pdist(np.mean(ds.samples, axis=1), metric='correlation') )
 
 
+
+'''=======================================================================================
+    Given a dataset with shape (s, v, t) where 
+        s is the number of subjects
+        v is the number of voxels in each subject
+        t is the constant number of time series for each voxel
+    This function will compute all combinations of pairwise 1st canonical correlation
+    coefficients between subjects s.  The mean of these is returned.
+======================================================================================='''    
+def cca(ds):
+    num_subj = ds.shape[0]
+    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
+    cca.train([subj.T for subj in ds.samples]) 
+    return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
+    
+#    corrs = []
+#    for i in range(num_subj-1):
+#        for j in range(i+1, num_subj):   
+#            u = ds.samples[i,:,:].T
+#            v = ds.samples[j,:,:].T                
+#            cca.train([u, v])
+#            corrs.append(cca.cancorrs[0])        
+#    return np.mean(corrs)
+    
+    
+    
 '''=======================================================================================
     Given a dataset with shape (s, v, t) where 
         s is the number of subjects
@@ -375,26 +401,10 @@ def fake_measure(ds):
     print(ds.shape)
     return 1
     
-    
-def cca(ds):
-    num_subj = ds.shape[0]
-    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
-    cca.train([subj.T for subj in ds.samples]) 
-    return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
+
     
     
-#    corrs = []
-#    for i in range(num_subj-1):
-#        for j in range(i+1, num_subj):   
-#            u = ds.samples[i,:,:].T
-#            v = ds.samples[j,:,:].T                
-#            cca.train([u, v])
-#            corrs.append(cca.cancorrs[0])        
-#    return np.mean(corrs)
-    
-    
-    
-#takes a sphere through a subject with boolean activation s and returns the number
+# takes a sphere through a subject with boolean activation s and returns the number
 # of voxels in that where reported as active for each time series. Returns an array
 # of shape (n, t) where n is the number of active voxels and t is the fixed number of
 # samples over time.
@@ -407,28 +417,39 @@ def get_most_active_indices(ds):
     k = 1    
     #return np.argsort(ds)[:,-k:]
     return np.argmax(ds, axis=1)
+    
 '''====================================================================================
     Takes a dataset of shape (n, v, t) where n is number of subjects, v is number
     of voxels, and t is number of time samples for each subject.  Runs a parallel
     searchlight analysis on all of the subjects given the metric input.
     
     ds          The Dataset object containing all of the subjects runs
+    metric      (optional) One of 'euclidean', 'dtw', 'cca', 'correlation'.  Defaults
+                to Pearsons Correlation. 
+    radius      (optional) The radius of the searchlight sphere. Defaults to 3.
+    center_ids  (optional) The feature attribute name to use as the centers for the 
+                searchlights.
+    nproc       (optional) Number of processors to use.  Defaults to all available 
+                processors on the system. 
                         
     Returns      The results of the searchlight
 ======================================================================================''' 
-def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=58):
+def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=None):
 
+    nproc=58
     if metric == 'euclidean':
         measure = euclidean_average
     elif metric == 'dtw':
         measure = dtw_average
     elif metric == 'cca':
         measure = cca
-    else:
+    elif metric == 'correlation':
         measure = pearsons_average
-   
-    sl = sphere_searchlight(measure, radius=radius, nproc=nproc)    
-    #sl = sphere_searchlight(fake_measure, radius=radius, center_ids=center_ids, nproc=nproc)
+    else:
+        print("Invalid metric, using Pearsons Correlation by default.")
+        measure = pearsons_average
+        
+    sl = sphere_searchlight(measure, radius=radius, center_ids=center_ids, nproc=nproc)   
     
     searched_ds = sl(ds)
     searched_ds.fa = ds.fa
