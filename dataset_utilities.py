@@ -334,13 +334,6 @@ def dtw_average(ds):
     X = np.mean(ds.samples, axis=1)
     return np.mean(pdist(X, lambda u, v: fastdtw(u, v)[0]))
 
-'''====================================================================================
-    This should take the mean accross the searchlight of voxels, then look through 
-    all n voxels at time t, and return argmax(), i.e the voxel coordinate of the 
-    'most activated' location for that time.
-======================================================================================''' 
-def maximum_time():
-    return 1        
 
 
 '''====================================================================================
@@ -351,72 +344,20 @@ def maximum_time():
     ds_list      The list of Dataset objects containing subject data. 
                         
     Returns      A new Dataset object with all of the datasets combined
-======================================================================================'''     
+======================================================================================'''   
 def combine_datasets(dslist):
-    
     num_samples = dslist[0].shape[0]
     num_voxels = dslist[0].shape[1]
-    combined_ds = []
-    for row, subject in enumerate(dslist):
-        combined_ds.append(np.zeros((num_voxels,num_samples)))
-        data = np.transpose(subject.samples)
-        for column, voxel in enumerate(data):
-            combined_ds[row][column] = voxel
-    ds = Dataset(np.array(combined_ds))
+    ds_tup = ()
+    for subj in dslist:
+        ds_tup = ds_tup + (subj.samples.T,)        
+    ds = Dataset(np.vstack(ds_tup).reshape((len(dslist), num_voxels, num_samples)))
     ds.a.mapper = dslist[0].a.mapper
     ds.fa["voxel_indices"] = dslist[0].fa.voxel_indices
     ds.sa.clear()
     ds.sa["subject"] = np.arange(len(dslist))       
     return ds
 
-
-'''====================================================================================
-    Takes n datasets with v voxels and t time samples each, and creates a numpy array 
-    with shape (n, v, t) and inserts it into a new Dataset object with the same voxel
-    indices as before. 
-    
-    ds_list      The list of Dataset objects containing subject data. 
-                        
-    Returns      A new Dataset object with all of the datasets transposed and combined
-======================================================================================'''     
-def combine_and_transpose_datasets(dslist):
-    
-    num_samples = dslist[0].shape[0]
-    num_voxels = dslist[0].shape[1]
-    combined_ds = []
-    for row, subject in enumerate(dslist):
-        combined_ds.append(np.zeros((num_samples, num_voxels)))
-        for column, voxel in enumerate(subject.samples):
-            combined_ds[row][column] = voxel
-    ds = Dataset(np.array(combined_ds))
-    ds.a.mapper = dslist[0].a.mapper
-    ds.fa["time_indices"] = np.arange(num_samples) 
-    ds.fa.clear()
-    ds.sa["subject"] = np.arange(len(dslist))       
-    return ds
-
-    
-    
-def fake_measure(ds):
-    print(ds.shape)
-    return 1
-    
-
-    
-    
-# takes a sphere through a subject with boolean activation s and returns the number
-# of voxels in that where reported as active for each time series. Returns an array
-# of shape (n, t) where n is the number of active voxels and t is the fixed number of
-# samples over time.
-def count_active(ds):
-    #return 1
-    return np.sum(ds.samples.mask, axis=1)
-    
-    
-def get_most_active_indices(ds):
-    k = 1    
-    #return np.argsort(ds)[:,-k:]
-    return np.argmax(ds, axis=1)
     
 '''====================================================================================
     Takes a dataset of shape (n, v, t) where n is number of subjects, v is number
@@ -446,7 +387,7 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=N
     elif metric == 'correlation':
         measure = pearsons_average
     else:
-        print("Invalid metric, using Pearsons Correlation by default.")
+        print("Invalid metric, using Pearson's Correlation by default.")
         measure = pearsons_average
         
     sl = sphere_searchlight(measure, radius=radius, center_ids=center_ids, nproc=nproc)   
@@ -456,6 +397,37 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=N
     searched_ds.a = ds.a    
     
     return searched_ds
+    
+    
+    
+    
+    
+#########################################################################################  
+
+
+
+'''====================================================================================
+    This should take the mean accross the searchlight of voxels, then look through 
+    all n voxels at time t, and return argmax(), i.e the voxel coordinate of the 
+    'most activated' location for that time.
+======================================================================================''' 
+def maximum_time():
+    return 1        
+
+  
+# takes a sphere through a subject with boolean activation s and returns the number
+# of voxels in that where reported as active for each time series. Returns an array
+# of shape (n, t) where n is the number of active voxels and t is the fixed number of
+# samples over time.
+def count_active(ds):
+    #return 1
+    return np.sum(ds.samples.mask, axis=1)
+    
+    
+def get_most_active_indices(ds):
+    k = 1    
+    #return np.argsort(ds)[:,-k:]
+    return np.argmax(ds, axis=1)    
     
 
 #Takes a dataset and searches at each time point for the k most active regions
@@ -484,12 +456,6 @@ def find_active_regions(ds, sd_threshold=3.0):
 #            top_five.append(voxel_indices[entry])
 #        results.append(top_five)
 #    return np.array(results)
-    
-
-
-
-
-
 
 
 ## TODO:  First run all 34 subjects through a searchlight of radius r, averaging
