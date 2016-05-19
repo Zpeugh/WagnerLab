@@ -3,15 +3,15 @@
 Created on Thu Feb 18 16:05:58 2016
 
 @author: Zach Peugh
+
+@description: Utility file for preprocessing fmri data
+
 """
 
 import numpy as np
 from mvpa2.tutorial_suite import *
 import matplotlib.pyplot as plt
 import scipy.signal as ss
-
-################################Utility file for preprocessing data######################
-
 
 
 '''=====================================================================================
@@ -234,7 +234,7 @@ def get_design_matrix(list_of_param_matrices, num_degrees):
 
    returns      spliced samples
 ======================================================================================'''
-def spliceRuns(samples, beg_offset=0, end_offset=0, symmetric=False):
+def splice_runs(samples, beg_offset=0, end_offset=0, symmetric=False):
     sample_size = len(samples)
     if symmetric:
         end_offset = beg_offset
@@ -252,7 +252,7 @@ def spliceRuns(samples, beg_offset=0, end_offset=0, symmetric=False):
     returns         the detrended dataset with voxel_indices, time_coords, time_indices
                     and chunks attributes added.
 ======================================================================================'''
-def combineRuns(ds_list, sample_rate=0):
+def combine_runs(ds_list, sample_rate=0):
        
     ds_tuple = ()
     chunks_tuple = ()
@@ -320,42 +320,9 @@ def splice_ds_runs(ds, num_runs, beg_offset=0, end_offset=0):
     new_ds.sa["time_coords"] = sliced_t_coords
     new_ds.sa["time_indices"] = sliced_t_indices
     new_ds.fa["voxel_indices"] = ds.fa["voxel_indices"]
+    
     return new_ds     
 
-
-
-
-##############################OLD #############################################
-def old_get_design_matrix(list_of_param_matrices, num_degrees):
-
-    row_split = list_of_param_matrices[0].shape[0] 
-    col_split = num_degrees + list_of_param_matrices[0].shape[1]
-    num_runs = len(list_of_param_matrices)
-   
-    constant_column = np.ones( (row_split,1) )
-    polynomial_matrix = get_polynomial_design_matrix(row_split, degrees=num_degrees)
-    
-
-    design_matrix = np.zeros( (row_split * num_runs , (col_split + 1) * num_runs) )    
-        
-    for i, param_matrix in enumerate(list_of_param_matrices):
-        
-        r_start = i * row_split
-        c_start = i * (col_split + 1)
-        r_end = r_start + row_split
-        c_end = c_start + col_split + 1
-        run_matrix = add_columns_to_matrix(polynomial_matrix, param_matrix)
-    
-        design_matrix[r_start:r_end, c_start:c_end] = add_columns_to_matrix(run_matrix, constant_column)
-    
-    plt.clf()
-    plt.figure(figsize=(10,6))
-    plt.imshow(design_matrix, cmap='gray', aspect='auto', interpolation='none')
-    plt.show()
-    
-  
-    return design_matrix
-    
     
     
 

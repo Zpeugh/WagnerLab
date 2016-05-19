@@ -77,7 +77,7 @@ def get_2010_preprocessed_data(num_samples=34, mask_path='masks/bigmask_3x3x3.ni
         params3 = np.loadtxt( base_path + subject + param_path.format(3) )    
       
         dm = fp.get_design_matrix([params1, params2, params3], degrees)       
-        ds = fp.combineRuns([ds1, ds2, ds3],correct_sr)     
+        ds = fp.combine_runs([ds1, ds2, ds3],correct_sr)     
         
         ds = fp.detrend_data_with_design_matrix(ds, dm)                   
         ds = fp.splice_ds_runs(ds,3,38,39)
@@ -110,7 +110,7 @@ def get_2010_preprocessed_data(num_samples=34, mask_path='masks/bigmask_3x3x3.ni
         params3 = np.loadtxt( base_path + subject + param_path.format(3) )    
       
         dm = fp.get_design_matrix([params1, params2, params3], 1)
-        ds = fp.combineRuns([ds1, ds2, ds3],correct_sr)
+        ds = fp.combine_runs([ds1, ds2, ds3],correct_sr)
         
         ds = fp.detrend_data_with_design_matrix(ds, dm)                   
         ds = fp.splice_ds_runs(ds,3,38,39)
@@ -177,7 +177,7 @@ def get_raw_2010_datasets(num_samples=34, mask_path='masks/bigmask_3x3x3.nii', s
         ds2 = fmri_dataset( base_path + subject + run_path.format(2), mask=mask_path ) 
         ds3 = fmri_dataset( base_path + subject + run_path.format(3), mask=mask_path ) 
       
-        ds = fp.combineRuns([ds1, ds2, ds3],correct_sr)
+        ds = fp.combine_runs([ds1, ds2, ds3],correct_sr)
         
         ds.a = ds1.a
         dataset_dict[ "subject_{0}".format(index) ] = fp.splice_ds_runs(ds,3,38,39)
@@ -199,7 +199,7 @@ def get_raw_2010_datasets(num_samples=34, mask_path='masks/bigmask_3x3x3.nii', s
         ds2 = fp.ds_resample( ds2, incorrect_sr, correct_sr )            
         ds3 = fp.ds_resample( ds3, incorrect_sr, correct_sr )    
         
-        ds = fp.combineRuns([ds1, ds2, ds3],correct_sr)        
+        ds = fp.combine_runs([ds1, ds2, ds3],correct_sr)        
         
         ds.a.mapper = ds1.a.mapper
         dataset_dict["subject_{0}".format(index + offset)] = fp.splice_ds_runs(ds,3,38,39)
@@ -222,6 +222,19 @@ def voxel_plot(ds, voxel_position):
     plt.axvline(422, color='r', linestyle='--')
     plt.show()
 
+
+def plot_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
+    plt.clf()    
+    fig = plt.figure(figsize=(10,6))
+    plt.scatter(isc_data, isi_data)
+    plt.title(title)
+    plt.xlabel('Intersubject Correlation')
+    plt.ylabel('intersubject Information')
+    
+    if save:
+        fig.savefig(filename)
+    plt.show()
+ 
 
 '''====================================================================================
     Plot the timeseries of a single voxel for a Dataset using matplotlib.
@@ -377,7 +390,6 @@ def combine_datasets(dslist):
 ======================================================================================''' 
 def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=None):
 
-    nproc=58
     if metric == 'euclidean':
         measure = euclidean_average
     elif metric == 'dtw':

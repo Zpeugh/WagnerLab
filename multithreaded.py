@@ -3,6 +3,9 @@
 Created on Thu Mar 31 15:03:29 2016
 
 @author: peugh.14
+
+@description: Module to quickly parallel preprocess the 2010 movie data
+
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -61,7 +64,7 @@ def get_ds(subject,index, mask_path, degrees):
         params3 = np.loadtxt( BASE_PATH + subject + PARAM_PATH.format(3) )    
       
         dm = fp.get_design_matrix([params1, params2, params3], 1)
-        ds = fp.combineRuns([ds1, ds2, ds3],CORRECT_SR)
+        ds = fp.combine_runs([ds1, ds2, ds3],CORRECT_SR)
 
         ds = fp.detrend_data_with_design_matrix(ds, dm) 
         ds = fp.splice_ds_runs(ds,3,38,39)
@@ -118,8 +121,6 @@ def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.n
        
  
 
-    
- 
  
  
  
