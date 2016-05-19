@@ -302,24 +302,31 @@ def pearsons_average(ds):
         s is the number of subjects
         v is the number of voxels in each subject
         t is the constant number of time series for each voxel
-    This function will compute all combinations of pairwise 1st canonical correlation
-    coefficients between subjects s.  The mean of these is returned.
+    All voxels in the searchlight are mean centered at each time point.  All combinations 
+    of pairwise 1st canonical correlations are calculated and the mean value for this
+    region is returned.
 ======================================================================================='''    
 def cca(ds):
     num_subj = ds.shape[0]
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
+    centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
+    cca.train([subj.T for subj in centered_ds]) 
+    return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
+  
+
+'''=======================================================================================
+    Given a dataset with shape (s, v, t) where 
+        s is the number of subjects
+        v is the number of voxels in each subject
+        t is the constant number of time series for each voxel
+    This function will compute all combinations of pairwise 1st canonical correlation
+    coefficients between subjects s.  The mean of these is returned.
+======================================================================================='''    
+def cca_uncentered(ds):
+    num_subj = ds.shape[0]
+    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
     cca.train([subj.T for subj in ds.samples]) 
     return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
-    
-#    corrs = []
-#    for i in range(num_subj-1):
-#        for j in range(i+1, num_subj):   
-#            u = ds.samples[i,:,:].T
-#            v = ds.samples[j,:,:].T                
-#            cca.train([u, v])
-#            corrs.append(cca.cancorrs[0])        
-#    return np.mean(corrs)
-    
     
     
 '''=======================================================================================
@@ -394,6 +401,8 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=N
         measure = euclidean_average
     elif metric == 'dtw':
         measure = dtw_average
+    elif metric == 'cca_u':
+        measure = cca_uncentered
     elif metric == 'cca':
         measure = cca
     elif metric == 'correlation':

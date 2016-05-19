@@ -1,0 +1,24 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu May 19 15:23:58 2016
+
+@author: peugh.14
+"""
+
+import multithreaded as mult
+import dataset_utilities as du
+import pickle
+
+dslist = mult.get_2010_preprocessed_data()
+
+cds = du.combine_datasets(dslist)
+
+cca_r2_results = du.run_searchlight(cds, nproc=55, radius=2, metric='cca')
+
+cor_r2_results = du.run_searchlight(cds, nproc=55, radius=2, metric='correlation')
+
+f = open('results/data/cca_34_2.pckl', 'wb')
+pickle.dump(cca_r2_results, f)
+f.close()
+
+du.plot_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
