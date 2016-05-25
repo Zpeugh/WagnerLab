@@ -224,7 +224,21 @@ def voxel_plot(ds, voxel_position):
     plt.axvline(422, color='r', linestyle='--')
     plt.show()
 
+'''====================================================================================
+    Plot the intersubject information versus intersubject canonical correlation in
+    a single color scatterplot.
+    
+    isc_data            The Dataset object containing (1, n) intersubject canonical
+                        correlation data samples
+    isc_data            The Dataset object containing (1, n) intersubject correlation
+                        data samples
+    title               The string title for the figure
+    save                (optional) Boolean variable for whether or not you wish to save
+                        the file
+    filename            Required if save=True. The name of the file to save the figure as
 
+    voxel_position      a number representing which voxel in the dataset to display
+======================================================================================'''  
 def plot_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
     plt.clf()    
     fig = plt.figure(figsize=(10,6))
@@ -238,13 +252,25 @@ def plot_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
     plt.show()
  
 
-def nearly_equal(x,y,sig_fig):
-    return (x==y or int(x*10**sig_fig == int(y*10**sig_fig)))
+'''====================================================================================
+    Plot the intersubject information versus intersubject canonical correlation in
+    a tri-colored scatterplot, where blue indicates the back 1/3rd of the brain, green
+    indicates the middle 1/3rd and red indicates the front 1/3rd (all with respect to the
+    sagittal plane).
+    
+    isc_data            The Dataset object containing (1, n) intersubject canonical
+                        correlation data samples
+    isc_data            The Dataset object containing (1, n) intersubject correlation
+                        data samples
+    title               The string title for the figure
+    save                (optional) Boolean variable for whether or not you wish to save
+                        the file
+    filename            Required if save=True. The name of the file to save the figure as
 
-
- 
+    voxel_position      a number representing which voxel in the dataset to display
+======================================================================================'''  
 def plot_colored_isc_vs_isi(isc_data, isi_data, voxels, title, save=False, filename=None):
-    plt.clf()
+   
     
     iscd = isc_data.samples[0,:]
     isid = isi_data.samples[0,:]
@@ -268,17 +294,11 @@ def plot_colored_isc_vs_isi(isc_data, isi_data, voxels, title, save=False, filen
     X = green_x + red_x + blue_x
     Y = green_y + red_y + blue_y
 
-#    for i in range(0, len(X)-1):
-#        for j in range(i, len(X)):
-#            if nearly_equal(X[i], X[j], 4) and nearly_equal(Y[i], Y[j], 4):
-#                color_array[i] = 'black'
-#                color_array[j] = 'black'
-
+    plt.clf()
     fig = plt.figure(figsize=(10,6))
     blue_marker = mpatches.Patch(color='steelblue', label="back")
     green_marker = mpatches.Patch(color='seagreen', label="middle")
     red_marker = mpatches.Patch(color='darkred', label="front")
-
     
     plt.scatter(X,Y, marker = 'x', color=color_array)
     fig.legend(handles=[blue_marker, green_marker, red_marker], labels=["Back 1/3rd", "Middle 1/3rd", "Front 1/3rd"], bbox_to_anchor=(0.66,0.125), loc='lower left')
