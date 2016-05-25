@@ -4,6 +4,7 @@ Created on Thu Mar  3 16:09:46 2016
 
 @author: peugh.14
 """
+from sklearn.cross_decomposition import CCA
 import numpy as np
 import matplotlib.pyplot as plt
 from mvpa2.tutorial_suite import *
@@ -13,6 +14,7 @@ from scipy.spatial.distance import pdist
 from mvpa2.measures.searchlight import sphere_searchlight
 from fastdtw import fastdtw
 import rcca
+import matplotlib.patches as mpatches
 
 
 '''====================================================================================
@@ -236,6 +238,59 @@ def plot_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
     plt.show()
  
 
+def nearly_equal(x,y,sig_fig):
+    return (x==y or int(x*10**sig_fig == int(y*10**sig_fig)))
+
+
+ 
+def plot_colored_isc_vs_isi(isc_data, isi_data, voxels, title, save=False, filename=None):
+    plt.clf()
+    
+    iscd = isc_data.samples[0,:]
+    isid = isi_data.samples[0,:]
+    
+    blue_x = [x for i, x in enumerate(iscd) if voxels[i][1] <= 20]
+    blue_y = [x for i, x in enumerate(isid) if voxels[i][1] <= 20]
+    
+    green_x = [x for i, x in enumerate(iscd) if voxels[i][1] > 20 and voxels[i][1] < 41]
+    green_y = [x for i, x in enumerate(isid) if voxels[i][1] > 20 and voxels[i][1] < 41]
+    
+    red_x = [x for i, x in enumerate(iscd) if voxels[i][1] >= 41]
+    red_y = [x for i, x in enumerate(isid) if voxels[i][1] >= 41]
+    
+    color_array = ['seagreen' for i in range(len(green_x))]
+    label_array = ['Middle brain' for i in range(len(green_x))]
+    color_array += ['darkred' for i in range(len(red_x))] 
+    label_array = ['Front brain' for i in range(len(red_x))]
+    color_array += ['steelblue' for i in range(len(blue_x))]       
+    label_array = ['Back brain' for i in range(len(blue_x))] 
+    
+    X = green_x + red_x + blue_x
+    Y = green_y + red_y + blue_y
+
+#    for i in range(0, len(X)-1):
+#        for j in range(i, len(X)):
+#            if nearly_equal(X[i], X[j], 4) and nearly_equal(Y[i], Y[j], 4):
+#                color_array[i] = 'black'
+#                color_array[j] = 'black'
+
+    fig = plt.figure(figsize=(10,6))
+    blue_marker = mpatches.Patch(color='steelblue', label="back")
+    green_marker = mpatches.Patch(color='seagreen', label="middle")
+    red_marker = mpatches.Patch(color='darkred', label="front")
+
+    
+    plt.scatter(X,Y, marker = 'x', color=color_array)
+    fig.legend(handles=[blue_marker, green_marker, red_marker], labels=["Back 1/3rd", "Middle 1/3rd", "Front 1/3rd"], bbox_to_anchor=(0.66,0.125), loc='lower left')
+    plt.title(title, fontsize=15)
+    plt.xlabel('Intersubject Correlation',fontsize=15)
+    plt.ylabel('Intersubject Information', fontsize=15)
+    
+    if save:
+        fig.savefig(filename)
+    plt.show()
+ 
+
 '''====================================================================================
     Plot the timeseries of a single voxel for a Dataset using matplotlib.
     
@@ -313,6 +368,23 @@ def cca(ds):
     cca.train([subj.T for subj in centered_ds]) 
     return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
   
+
+def first_canonical_correlation(u, v):
+    
+    cca = CCA(n_components=1)    
+    U_c, V_c = cca.fit_transform(u, v) 
+    return np.corrcoef(U_c.T, V_c.T)[0,1]
+
+
+def sk_cca(ds):
+    num_subj = ds.shape[0]
+    corrs= []
+    for i in range(0, num_subj-1):
+        for j in range(i, num_subj):            
+            U = ds.samples[i,:,:].T
+            V = ds.samples[j, :, :].T            
+            corrs.append(first_canonical_correlation(U, V))
+    return np.mean(corrs)
 
 '''=======================================================================================
     Given a dataset with shape (s, v, t) where 
@@ -395,7 +467,7 @@ def combine_datasets(dslist):
                         
     Returns      The results of the searchlight
 ======================================================================================''' 
-def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=None):
+def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, n_cpu=40):
 
     if metric == 'euclidean':
         measure = euclidean_average
@@ -405,13 +477,15 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, nproc=N
         measure = cca_uncentered
     elif metric == 'cca':
         measure = cca
+    elif metric == 'sk_cca':
+        measure = seq_cca
     elif metric == 'correlation':
         measure = pearsons_average
     else:
         print("Invalid metric, using Pearson's Correlation by default.")
         measure = pearsons_average
         
-    sl = sphere_searchlight(measure, radius=radius, center_ids=center_ids, nproc=nproc)   
+    sl = sphere_searchlight(measure, radius=radius, center_ids=center_ids, nproc=n_cpu)   
     
     searched_ds = sl(ds)
     searched_ds.fa = ds.fa

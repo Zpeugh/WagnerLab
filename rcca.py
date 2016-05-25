@@ -2,6 +2,7 @@ import numpy as np
 from scipy.linalg import eigh
 import h5py
 
+
 class _CCABase(object):
     def __init__(self, numCV = None, reg = None, regs = None, numCC = None, numCCs = None, kernelcca = True, ktype = None, verbose = False, select = 0.2, cutoff = 1e-15):
         self.numCV = numCV
@@ -220,6 +221,7 @@ def kcca(data, reg = 0., numCC=None, kernelcca = True, ktype = "linear", returnc
     RH = (RH+RH.T)/2.
 
     r, Vs = eigh(LH, RH)
+    #r, Vs = np.linalg.eigh([LH, RH])
 
     if kernelcca:
         comp = []
