@@ -368,8 +368,7 @@ def ds_dict_to_list(dataset_dict):
 ======================================================================================='''
 def pearsons_average(ds):
   
-    return (ds.shape[1])
-    #return 1 - np.mean( pdist(np.mean(ds.samples, axis=1), metric='correlation') )
+    return 1 - np.mean( pdist(np.mean(ds.samples, axis=1), metric='correlation') )
 
 
 

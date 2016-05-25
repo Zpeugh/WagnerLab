@@ -24,26 +24,23 @@ import pickle
 =======================================================================================''' 
 def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
     
+    # Get the datasets
     dslist = mult.get_2010_preprocessed_data(num_subjects=subjects, mask_path=mask_path, num_threads=n_cpu)
     cds = du.combine_datasets(dslist)
     
-    ################################Radius 3#########################################
+    # Run CCA and save results to pickle and nifti file
     cca_res = du.run_searchlight(cds, n_cpu=n_cpu, radius=radius, metric='cca')
-    
-    f = open('results/data/cca_{0}_{1}.pckl'.format(subjects, radius), 'wb')
+    f = open('results/data/{0}_cca_{1}_{2}.pckl'.format(brain_region, subjects, radius), 'wb')
     pickle.dump(cca_res, f)
-    f.close()
-    
-    du.export_to_nifti(cca_res, '{0}_cancorr_{1}_subject_r{2}'.format(brain_region,subjects, radius))
-    
-    
+    f.close()   
+    du.export_to_nifti(cca_res, 'results/nifti/{0}_cca_{1}s_r{2}'.format(brain_region,subjects, radius))
+
+    # Run Pearson's correlation and save results to pickle and nifti file    
     corr_res = du.run_searchlight(cds, n_cpu=n_cpu, radius=radius, metric='correlation')
-    
-    f = open('results/data/corr_{0}_{1}.pckl'.format(subjects, radius), 'wb')
+    f = open('results/data/{0}_corr_{0}_{1}.pckl'.format(brain_region, subjects, radius), 'wb')
     pickle.dump(corr_res, f)
     f.close()
+    du.export_to_nifti(corr_res, 'results/nifti/{0}_corr_{1}s_r{2}'.format(brain_region,subjects, radius))
     
-    du.export_to_nifti(corr_res, '{0}_pearson_{1}_subject_r{2}'.format(brain_region,subjects, radius))
-    
-    
-    du.plot_isc_vs_isi(corr_res, cca_res, '{0} {1} Subject ISI vs ISC: Searchlight Radius {2}'.format(brain_region, subjects, radius), save=True, filename='results/figures/{0}_{1}_{2}'.format(brain_region, subjects, radius))
+    # Plot the colored and ISC vs ISI plot
+    du.plot_colored_isc_vs_isi(corr_res, cca_res, voxels=corr_res.fa.voxel_indices, title='{0} {1} Subject ISI vs ISC: Searchlight Radius {2}'.format(brain_region, subjects, radius), save=True, filename='results/figures/{0}_{1}_{2}'.format(brain_region, subjects, radius))
