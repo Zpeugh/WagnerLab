@@ -46,4 +46,4 @@ def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
     du.export_to_nifti(corr_res, '{0}_pearson_{1}_subject_r{2}'.format(brain_region,subjects, radius))
     
     
-    du.plot_isc_vs_isi(corr_res, cca_res, '{0} {1} Subject ISI vs ISC: Seearchlight Radius {2}'.format(brain_region, subjects, radius), save=True, filename='results/figures/{0}_{1}_{2}'.format(brain_region, subjects, radius))
+    du.plot_isc_vs_isi(corr_res, cca_res, '{0} {1} Subject ISI vs ISC: Searchlight Radius {2}'.format(brain_region, subjects, radius), save=True, filename='results/figures/{0}_{1}_{2}'.format(brain_region, subjects, radius))
