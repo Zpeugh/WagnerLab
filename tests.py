@@ -93,7 +93,7 @@ def pvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cp
     dslist = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
     
     cds = du.combine_datasets(dslist)        
-    res = du.correlation_at_time(cds, radius=radius, n_cpu=n_cpu)
+    res = du.run_searchlight(cds, metric='pvalues', radius=radius, n_cpu=n_cpu)
     
     f = open('results/data/full_brain_p_values.pckl', 'wb')
     pickle.dump(res, f)

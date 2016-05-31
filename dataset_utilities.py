@@ -459,13 +459,18 @@ def euclidean_average(ds):
 
 
 
+
+def pvalues(ds):   
+    return ttest(ds.samples.mean(axis=1), 0).pvalue
+
 '''=======================================================================================
     Given a dataset with shape (s, v, t) where 
         s is the number of subjects
         v is the number of voxels in each subject
         t is the constant number of time series for each voxel
     This function will average across the voxels and then compute all combinations
-    of pairwise dynamic time warped distances between subjects s. The mean of this is returned.
+    of pairwise dynamic time warped distances between subjects s. The mean of this 
+    is returned.
 ======================================================================================='''
 def dtw_average(ds):	
     X = np.mean(ds.samples, axis=1)
@@ -502,8 +507,8 @@ def combine_datasets(dslist):
     searchlight analysis on all of the subjects given the metric input.
     
     ds          The Dataset object containing all of the subjects runs
-    metric      (optional) One of 'euclidean', 'dtw', 'cca', 'correlation'.  Defaults
-                to Pearsons Correlation. 
+    metric      (optional) One of 'euclidean', 'dtw', 'cca', 'correlation', 'pvalues'.
+                Defaults to Pearsons Correlation. 
     radius      (optional) The radius of the searchlight sphere. Defaults to 3.
     center_ids  (optional) The feature attribute name to use as the centers for the 
                 searchlights.
@@ -528,6 +533,8 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, n_cpu=4
         measure = cca_validate
     elif metric == 'correlation':
         measure = pearsons_average
+    elif metric == 'pvalues':
+        measure = pvalues
     else:
         print("Invalid metric, using Pearson's Correlation by default.")
         measure = pearsons_average
@@ -539,34 +546,6 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, n_cpu=4
     searched_ds.a = ds.a    
     
     return searched_ds
-    
-    
-def testing(ds):   
-    return ttest(ds.samples.mean(axis=1), 0).pvalue
-      
-def test2(ds):
-
-    means = ds.samples.mean(axis=1)
-    return 1
-    
-def correlation_at_time(ds, radius=3, n_cpu=20):
-
-        
-     ds_copy = ds.copy()
-     sl = sphere_searchlight(testing, radius=radius, nproc=n_cpu)
-     
-     searched_ds = sl(ds_copy)          
-     searched_ds.fa = ds.fa
-     searched_ds.a = ds.a    
-     
-     return searched_ds
-   
-   
-   
-   
-   
-   
-   
    
    
    
