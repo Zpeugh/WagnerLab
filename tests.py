@@ -9,6 +9,7 @@ Created on Wed May 25 12:46:17 2016
 import multithreaded as mult
 import dataset_utilities as du
 import pickle
+import matplotlib.pyplot as plt
 
 '''=======================================================================================
     Run intersubject correlation (Pearson's r) and intersubject information 
@@ -37,10 +38,50 @@ def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
 
     # Run Pearson's correlation and save results to pickle and nifti file    
     corr_res = du.run_searchlight(cds, n_cpu=n_cpu, radius=radius, metric='correlation')
-    f = open('results/data/{0}_corr_{0}_{1}.pckl'.format(brain_region, subjects, radius), 'wb')
+    f = open('results/data/{0}_corr_{1}_{2}.pckl'.format(brain_region, subjects, radius), 'wb')
     pickle.dump(corr_res, f)
     f.close()
     du.export_to_nifti(corr_res, 'results/nifti/{0}_corr_{1}s_r{2}'.format(brain_region,subjects, radius))
     
     # Plot the colored and ISC vs ISI plot
     du.plot_colored_isc_vs_isi(corr_res, cca_res, voxels=corr_res.fa.voxel_indices, title='{0} {1} Subject ISI vs ISC: Searchlight Radius {2}'.format(brain_region, subjects, radius), save=True, filename='results/figures/{0}_{1}_{2}'.format(brain_region, subjects, radius))
+
+
+
+
+
+def validation_bargraph(num_subjects, mask_path, radii=[0,1,2,3,4,5], n_cpu=None):
+    
+    dslist = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
+    
+    cds = du.combine_datasets(dslist)
+    
+    cancorrs = []
+    max_corrs = []
+    for rad in radii:
+        res = du.run_searchlight(cds, metric='cca_validate', radius=rad, n_cpu=n_cpu)
+        means = res.samples.mean(axis=1)
+        cancorrs.append(means[0])
+        max_corrs.append(means[1])
+
+    plt.clf()
+    
+    plt.bar(radii, cancorrs, color='steelblue')
+    plt.xlabel('Searchlight radius (voxels)')
+    plt.ylabel('Average First Canonical Correlation')
+    plt.title('First Canonical Correlation as Searchlight Radius Increases')
+    plt.show()
+    
+    
+    plt.bar(radii, max_corrs, color='orangered')
+    plt.xlabel('Searchlight radius (voxels)')
+    plt.ylabel('Average Maximum Prediction Correlation')
+    plt.title('Cross Validation and Prediction Average Maximum Accuracy')
+    plt.show()
+    
+    
+    
+
+
+
+

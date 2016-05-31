@@ -269,8 +269,9 @@ def plot_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
 
     voxel_position      a number representing which voxel in the dataset to display
 ======================================================================================'''  
-def plot_colored_isc_vs_isi(isc_data, isi_data, voxels, title, save=False, filename=None):
+def plot_colored_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
    
+    voxels = isc_data.fa.voxel_indices    
     
     iscd = isc_data.samples[0,:]
     isid = isi_data.samples[0,:]
@@ -389,6 +390,30 @@ def cca(ds):
     return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
   
 
+
+def cca_validate(ds):
+    num_subj = ds.shape[0]
+    num_samples = ds.shape[2]
+    split_point = int(num_samples * .8)
+    #split_point = int(num_subj * .66)
+    
+    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
+    centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
+    
+    
+    train_set = [subj.T[:split_point,:] for subj in centered_ds]
+    test_set = [subj.T[split_point:,:] for subj in centered_ds]
+    
+    #train_set = [subj.T for subj in centered_ds[:split_point,:,:]]
+    #test_set = [subj.T for subj in centered_ds[split_point:,:,:]]
+    
+    cca.train(train_set)
+    cca.validate(test_set)
+    
+    cancorr = np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
+    predcorr = np.max(cca.corrs)
+    return np.array([cancorr, predcorr])
+
 def first_canonical_correlation(u, v):
     
     cca = CCA(n_components=1)    
@@ -499,6 +524,8 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, n_cpu=4
         measure = cca
     elif metric == 'sk_cca':
         measure = seq_cca
+    elif metric == 'cca_validate':
+        measure = cca_validate
     elif metric == 'correlation':
         measure = pearsons_average
     else:
