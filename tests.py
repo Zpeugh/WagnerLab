@@ -10,6 +10,7 @@ import multithreaded as mult
 import dataset_utilities as du
 import pickle
 import matplotlib.pyplot as plt
+import time
 
 '''=======================================================================================
     Run intersubject correlation (Pearson's r) and intersubject information 
@@ -59,10 +60,13 @@ def validation_bargraph(num_subjects, mask_path, radii=[0,1,2,3,4,5], n_cpu=None
     cancorrs = []
     max_corrs = []
     for rad in radii:
+        t_0 = time.time()
         res = du.run_searchlight(cds, metric='cca_validate', radius=rad, n_cpu=n_cpu)
         means = res.samples.mean(axis=1)
         cancorrs.append(means[0])
         max_corrs.append(means[1])
+        t_elapsed = time.time() - t_0
+        print("Done with radius {0}\nTook {1} seconds".format(rad, t_elapsed))
 
     plt.clf()
     
@@ -79,9 +83,19 @@ def validation_bargraph(num_subjects, mask_path, radii=[0,1,2,3,4,5], n_cpu=None
     plt.title('Cross Validation and Prediction Average Maximum Accuracy')
     plt.show()
     
+    return (cancorrs, max_corrs)
     
     
+    
 
+def pvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cpu=20):
 
-
-
+    dslist = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
+    
+    cds = du.combine_datasets(dslist)        
+    res = du.correlation_at_time(cds, radius=radius, n_cpu=n_cpu)
+    
+    f = open('results/data/full_brain_p_values.pckl', 'wb')
+    pickle.dump(res, f)
+    f.close()
+    

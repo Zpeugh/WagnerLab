@@ -15,7 +15,7 @@ from mvpa2.measures.searchlight import sphere_searchlight
 from fastdtw import fastdtw
 import rcca
 import matplotlib.patches as mpatches
-
+from scipy.stats import ttest_1samp as ttest
 
 '''====================================================================================
     Get the combined, resampled, sliced, detrended and normalized Datasets.  
@@ -394,23 +394,23 @@ def cca(ds):
 def cca_validate(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
-    split_point = int(num_samples * .8)
-    #split_point = int(num_subj * .66)
+    #split_point = int(num_samples * .8)
+    split_point = int(num_subj * .66)
     
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
     centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
     
     
-    train_set = [subj.T[:split_point,:] for subj in centered_ds]
-    test_set = [subj.T[split_point:,:] for subj in centered_ds]
+    #train_set = [subj.T[:split_point,:] for subj in centered_ds]
+    #test_set = [subj.T[split_point:,:] for subj in centered_ds]
     
-    #train_set = [subj.T for subj in centered_ds[:split_point,:,:]]
-    #test_set = [subj.T for subj in centered_ds[split_point:,:,:]]
+    train_set = [subj.T for subj in centered_ds[:split_point,:,:]]
+    test_set = [subj.T for subj in centered_ds[split_point:,:,:]]
     
     cca.train(train_set)
     cca.validate(test_set)
     
-    cancorr = np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
+    cancorr = np.mean(cca.cancorrs[0][np.triu_indices(split_point,k=1)])
     predcorr = np.max(cca.corrs)
     return np.array([cancorr, predcorr])
 
@@ -541,9 +541,37 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, n_cpu=4
     return searched_ds
     
     
+def testing(ds):   
+    return ttest(ds.samples.mean(axis=1), 0).pvalue
+      
+def test2(ds):
+
+    means = ds.samples.mean(axis=1)
+    return 1
     
-    
-    
+def correlation_at_time(ds, radius=3, n_cpu=20):
+
+        
+     ds_copy = ds.copy()
+     sl = sphere_searchlight(testing, radius=radius, nproc=n_cpu)
+     
+     searched_ds = sl(ds_copy)          
+     searched_ds.fa = ds.fa
+     searched_ds.a = ds.a    
+     
+     return searched_ds
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
 #########################################################################################  
 
 
@@ -582,9 +610,10 @@ def get_most_active_indices(ds):
 
 # takes a dataset and returns the coordinates of its 5 most activated regions per time
 # point.  The shape of the resulting array is (t, 5, 3) where t is number of time series
-def find_active_regions(ds, sd_threshold=3.0):   
+def find_active_regions(dslist, sd_threshold=3.0):   
     
     ds_copy = ds.copy()
+        
     ds_copy.samples = np.ma.masked_greater(ds.samples, sd_threshold)
     sl = sphere_searchlight(count_active, radius=3, nproc=58)
     
