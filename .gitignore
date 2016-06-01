@@ -1,2 +1,5 @@
-*.pckl
-*.pyc
+**.pckl
+**.pyc
+
+
+results/data/**
