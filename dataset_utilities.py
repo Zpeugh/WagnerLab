@@ -286,11 +286,9 @@ def plot_colored_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None
     red_y = [x for i, x in enumerate(isid) if voxels[i][1] >= 41]
     
     color_array = ['seagreen' for i in range(len(green_x))]
-    label_array = ['Middle brain' for i in range(len(green_x))]
     color_array += ['darkred' for i in range(len(red_x))] 
-    label_array = ['Front brain' for i in range(len(red_x))]
     color_array += ['steelblue' for i in range(len(blue_x))]       
-    label_array = ['Back brain' for i in range(len(blue_x))] 
+   
     
     X = green_x + red_x + blue_x
     Y = green_y + red_y + blue_y
@@ -327,6 +325,31 @@ def fourier_plot(ds, voxel_position):
     plt.axvline(422, color='r', linestyle='--')
     plt.show()
 
+
+'''====================================================================================
+    Plot the timeseries of number of voxels activated above a significance threshold.
+    
+    ds                  The Dataset object containing pvalues testing the null
+                        hypothesis of mean=0.  
+    a                   The alpha level to count as 'activated'
+======================================================================================'''
+def plot_significant(ds, a, filename=None):
+    X = ds.samples
+    U = np.ma.masked_inside(X, 0,0.01).mask
+    
+    sums = [np.sum(x) for x in U]
+    
+    plt.clf()
+    fig = plt.figure(figsize=(10,6))
+    plt.plot(sums)
+    plt.xlabel('Time (2.5s increments)')
+    plt.ylabel('Total Voxels Activated')
+    plt.title('Voxel Activation Significantly Above 0 With a={0}'.format(a))
+    if filename:
+       fig.savefig(filename) 
+    plt.show()
+
+
 '''====================================================================================
     Plot an (n, m) design matrix in grayscale using matplotlib
     
@@ -351,14 +374,6 @@ def export_to_nifti(ds, filename):
     img.to_filename(filename)
     
 
-'''====================================================================================
-    Returns     a list of all of the Dataset objects in the dictionary
-======================================================================================'''    
-def ds_dict_to_list(dataset_dict):
-    return [dataset_dict[key] for key in dataset_dict if key.find("subject") != -1 ]
-    
- 
-  
 '''=======================================================================================
     Given a dataset with shape (s, v, t) where 
         s is the number of subjects
@@ -368,7 +383,6 @@ def ds_dict_to_list(dataset_dict):
     of pairwise pearsons correlations between subjects s.  The mean of this is returned.
 ======================================================================================='''
 def pearsons_average(ds):
-  
     return 1 - np.mean( pdist(np.mean(ds.samples, axis=1), metric='correlation') )
 
 
@@ -390,8 +404,9 @@ def cca(ds):
     return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
   
 
-
-def cca_validate(ds):
+''' Validate with an 66/33 split of training testing between subjects
+''' 
+def cca_validate_intersubject(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
     #split_point = int(num_samples * .8)
@@ -399,7 +414,6 @@ def cca_validate(ds):
     
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
     centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
-    
     
     #train_set = [subj.T[:split_point,:] for subj in centered_ds]
     #test_set = [subj.T[split_point:,:] for subj in centered_ds]
@@ -411,7 +425,29 @@ def cca_validate(ds):
     cca.validate(test_set)
     
     cancorr = np.mean(cca.cancorrs[0][np.triu_indices(split_point,k=1)])
-    predcorr = np.max(cca.corrs)
+    predcorr = np.mean(cca.corrs)
+    return np.array([cancorr, predcorr])
+    
+    
+    
+''' Validate with an 80/20 split of training testing on samples within a subject
+'''    
+def cca_validate(ds):
+    num_subj = ds.shape[0]
+    num_samples = ds.shape[2]
+    split_point = int(num_samples * .8)
+    
+    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
+    centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
+    
+    train_set = [subj.T[:split_point,:] for subj in centered_ds]
+    test_set = [subj.T[split_point:,:] for subj in centered_ds]
+
+    cca.train(train_set)
+    cca.validate(test_set)
+    
+    cancorr = np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
+    predcorr = np.mean(cca.corrs)
     return np.array([cancorr, predcorr])
 
 def first_canonical_correlation(u, v):
@@ -458,10 +494,10 @@ def euclidean_average(ds):
     return np.mean(pdist(np.mean(ds.samples, axis=1), metric='euclidean'))
 
 
-
-
 def pvalues(ds):   
-    return ttest(ds.samples.mean(axis=1), 0).pvalue
+    stats = ttest(ds.samples.mean(axis=1), 0)
+    signs = np.sign(stats.statistic)    
+    return signs * stats.pvalue
 
 '''=======================================================================================
     Given a dataset with shape (s, v, t) where 
@@ -531,6 +567,8 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, n_cpu=4
         measure = seq_cca
     elif metric == 'cca_validate':
         measure = cca_validate
+    elif metric == 'intersubject_validate':
+        measure = cca_validate_intersubject
     elif metric == 'correlation':
         measure = pearsons_average
     elif metric == 'pvalues':
@@ -641,3 +679,17 @@ def find_active_regions(dslist, sd_threshold=3.0):
 #     
 #==============================================================================
 
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
