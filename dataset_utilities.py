@@ -15,7 +15,8 @@ from mvpa2.measures.searchlight import sphere_searchlight
 from fastdtw import fastdtw
 import rcca
 import matplotlib.patches as mpatches
-from scipy.stats import ttest_1samp as ttest
+#from scipy.stats import ttest_1samp as ttest
+from mvpa2.misc.stats import ttest_1samp as ttest
 
 '''====================================================================================
     Get the combined, resampled, sliced, detrended and normalized Datasets.  
@@ -335,7 +336,7 @@ def fourier_plot(ds, voxel_position):
 ======================================================================================'''
 def plot_significant(ds, a, filename=None):
     X = ds.samples
-    U = np.ma.masked_inside(X, 0,0.01).mask
+    U = np.ma.masked_inside(X, 0,a).mask
     
     sums = [np.sum(x) for x in U]
     
@@ -348,7 +349,36 @@ def plot_significant(ds, a, filename=None):
     if filename:
        fig.savefig(filename) 
     plt.show()
+    return sums
 
+
+def plot_scenes(ds, a, filename=None):
+    
+    FALSE_DISCOVERY_RATE = 0.05
+    TOTAL_VOXELS_IN_BRAIN = ds.shape[1]
+    X = ds.samples
+    U = np.ma.masked_inside(X, 0,a).mask
+    
+    sums = [np.sum(x) for x in U]
+    
+    threshold = FALSE_DISCOVERY_RATE * TOTAL_VOXELS_IN_BRAIN
+    
+    ones = np.zeros(ds.shape[0])
+    
+    for i, s in enumerate(sums):
+        if s > threshold:
+            ones[i] = 1
+            
+    plt.clf()
+    fig = plt.figure(figsize=(10,6))
+    plt.plot(ones, '.')
+    plt.xlabel('Time (2.5s increments)')
+    plt.ylabel('Activated (T/F)')
+    plt.ylim([0, 1.5])
+    plt.title('Binary Activations')
+    if filename:
+       fig.savefig(filename) 
+    plt.show()       
 
 '''====================================================================================
     Plot an (n, m) design matrix in grayscale using matplotlib
@@ -495,9 +525,9 @@ def euclidean_average(ds):
 
 
 def pvalues(ds):   
-    stats = ttest(ds.samples.mean(axis=1), 0)
-    signs = np.sign(stats.statistic)    
-    return signs * stats.pvalue
+    #stats = ttest(ds.samples.mean(axis=1), popmean=0, alternative='greater')
+    #signs = np.sign(stats.statistic)    
+    return ttest(ds.samples.mean(axis=1), popmean=0, alternative='greater')[1]
 
 '''=======================================================================================
     Given a dataset with shape (s, v, t) where 

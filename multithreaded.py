@@ -13,6 +13,7 @@ from mvpa2.tutorial_suite import *
 import fmri_preprocessing as fp
 import time
 from multiprocessing import Pool
+import dataset_utilities as du
 
 
 INCORRECT_SR = 2.5112    #The incorrect sample rate for 9 runs (samples/sec)
@@ -85,7 +86,8 @@ def multiple_get_ds(arg_list):
     
 
 '''====================================================================================
-    Get the combined, resampled, sliced, detrended and normalized Datasets.  
+    Get the combined, resampled, sliced, detrended and normalized Datasets, stacked and
+    put together into one Dataset
     
     num_subjects         (optional) The number of samples 1-34 to work with.  
                         Default is all samples (34).
@@ -94,7 +96,8 @@ def multiple_get_ds(arg_list):
     degrees             (optional) The number of polynomial degrees to use when
                         detrending the dataset
                            
-    Returns             the List of num_subj subjects' preprocessed datasets
+    Returns             the Dataset of num_subj subjects' preprocessed datasets. This
+                        has shape (#subjects, #voxels_in_mask, #time_samples).
 ======================================================================================'''
 def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.nii', degrees=1, num_threads=34):
     
@@ -116,7 +119,7 @@ def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.n
     print("Average time per subject: %.4f" % (t_elapsed / float(num_subjects) ))
     print("Mask used: %s" % mask_path )
     
-    return results    
+    return du.combine_datasets(results)    
                   
        
  

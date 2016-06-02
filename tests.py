@@ -11,6 +11,7 @@ import dataset_utilities as du
 import pickle
 import matplotlib.pyplot as plt
 import time
+import timeit
 
 '''=======================================================================================
     Run intersubject correlation (Pearson's r) and intersubject information 
@@ -27,9 +28,7 @@ import time
 def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
     
     # Get the datasets
-    dslist = mult.get_2010_preprocessed_data(num_subjects=subjects, mask_path=mask_path, num_threads=n_cpu)
-    cds = du.combine_datasets(dslist)
-    
+    cds = mult.get_2010_preprocessed_data(num_subjects=subjects, mask_path=mask_path, num_threads=n_cpu)
     # Run CCA and save results to pickle and nifti file
     cca_res = du.run_searchlight(cds, n_cpu=n_cpu, radius=radius, metric='cca')
     f = open('results/data/{0}_cca_{1}_{2}.pckl'.format(brain_region, subjects, radius), 'wb')
@@ -53,10 +52,9 @@ def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
 
 def validation_bargraph(num_subjects, mask_path, radii=[0,1,2,3,4,5], n_cpu=None):
     
-    dslist = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
+    cds = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
     
-    cds = du.combine_datasets(dslist)
-    
+      
     cancorrs = []
     max_corrs = []
     for rad in radii:
@@ -88,14 +86,55 @@ def validation_bargraph(num_subjects, mask_path, radii=[0,1,2,3,4,5], n_cpu=None
     
     
 
-def pvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cpu=20):
+def pvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cpu=50):
 
-    dslist = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
+    cds = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
     
-    cds = du.combine_datasets(dslist)        
     res = du.run_searchlight(cds, metric='pvalues', radius=radius, n_cpu=n_cpu)
     
-    f = open('results/data/full_brain_p_values.pckl', 'wb')
+    f = open('results/data/full_brain_p_values_r3.pckl', 'wb')
     pickle.dump(res, f)
     f.close()
     
+    return res
+
+    
+
+def timing_test(metric='cca', n_cpu=20, filename=None):
+
+    cds = mult.get_2010_preprocessed_data(mask_path='masks/aal_l_ifg_oto_3x3x3.nii')
+    
+    times = []     
+    for rad in range(7):
+        t_0 = time.time()        
+        du.run_searchlight(cds, radius=rad, n_cpu=n_cpu)
+        times.append((time.time()-t_0) * n_cpu)
+    
+    plt.clf()
+    fig = plt.figure(figsize=(10,6))
+    plt.plot(times, '-o')
+    plt.xlabel('Searchlight Radius (voxels)')
+    plt.ylabel('Single Core Time (seconds)')
+    plt.title('CCA Time as a Function of Searchlight Radius')
+    if filename:
+       fig.savefig(filename) 
+    plt.show()
+    
+    return times
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+## Making masks
+## open fslview
+## save a mask
+## flirt -in ../LeftFrontalMedialCortex.nii.gz -ref aal_l_amyg_3x3x3.nii -out left_medial_frontal -applyxfm -usesqform
+## fslchfiletype NIFTI left_medial_frontal.nii.gz
+
