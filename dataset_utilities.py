@@ -434,29 +434,32 @@ def cca(ds):
     return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
   
 
-''' Validate with an 66/33 split of training testing between subjects
+''' Validate with an 66/33 split of training using calculated weights to predict last 
+    third of the data and then calculate the mean correlation coefficient 
 ''' 
-def cca_validate_intersubject(ds):
+def cca_validate_predict(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
-    #split_point = int(num_samples * .8)
-    split_point = int(num_subj * .66)
+    split_point = int(num_samples * .8)    
     
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
     centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
     
-    #train_set = [subj.T[:split_point,:] for subj in centered_ds]
-    #test_set = [subj.T[split_point:,:] for subj in centered_ds]
+    train_set = [subj.T[:split_point,:] for subj in centered_ds]
+    test_set = [subj.T[split_point:,:] for subj in centered_ds]
+            
+    cca.train(train_set)    
+    weights = np.squeeze(cca.ws, axis=(2,))    
     
-    train_set = [subj.T for subj in centered_ds[:split_point,:,:]]
-    test_set = [subj.T for subj in centered_ds[split_point:,:,:]]
-    
-    cca.train(train_set)
-    cca.validate(test_set)
-    
-    cancorr = np.mean(cca.cancorrs[0][np.triu_indices(split_point,k=1)])
-    predcorr = np.mean(cca.corrs)
-    return np.array([cancorr, predcorr])
+    mean_corrs = []
+    for i, subj in enumerate(test_set):
+        X = np.dot(subj, weights[i].T)        
+        corrs = []
+        for row in subj.T:            
+            corrs.append(np.corrcoef(X, row)[0,1])
+        mean_corrs.append(np.mean(corrs))
+   
+    return np.mean(mean_corrs)
     
     
     
@@ -465,7 +468,7 @@ def cca_validate_intersubject(ds):
 def cca_validate(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
-    split_point = int(num_samples * .8)
+    split_point = int(num_samples * .66)
     
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
     centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
@@ -524,10 +527,11 @@ def euclidean_average(ds):
     return np.mean(pdist(np.mean(ds.samples, axis=1), metric='euclidean'))
 
 
-def pvalues(ds):   
-    #stats = ttest(ds.samples.mean(axis=1), popmean=0, alternative='greater')
-    #signs = np.sign(stats.statistic)    
+def pvalues(ds):
     return ttest(ds.samples.mean(axis=1), popmean=0, alternative='greater')[1]
+    
+def tvalues(ds):  
+    return ttest(ds.samples.mean(axis=1), popmean=0, alternative='greater')[0]    
 
 '''=======================================================================================
     Given a dataset with shape (s, v, t) where 
@@ -597,12 +601,14 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, n_cpu=4
         measure = seq_cca
     elif metric == 'cca_validate':
         measure = cca_validate
-    elif metric == 'intersubject_validate':
-        measure = cca_validate_intersubject
+    elif metric == 'cca_vp':
+        measure = cca_validate_predict
     elif metric == 'correlation':
         measure = pearsons_average
     elif metric == 'pvalues':
         measure = pvalues
+    elif metric == 'tvalues':
+        measure = tvalues
     else:
         print("Invalid metric, using Pearson's Correlation by default.")
         measure = pearsons_average

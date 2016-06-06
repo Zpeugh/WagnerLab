@@ -44,7 +44,8 @@ def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
     du.export_to_nifti(corr_res, 'results/nifti/{0}_corr_{1}s_r{2}'.format(brain_region,subjects, radius))
     
     # Plot the colored and ISC vs ISI plot
-    du.plot_colored_isc_vs_isi(corr_res, cca_res, voxels=corr_res.fa.voxel_indices, title='{0} {1} Subject ISI vs ISC: Searchlight Radius {2}'.format(brain_region, subjects, radius), save=True, filename='results/figures/{0}_{1}_{2}'.format(brain_region, subjects, radius))
+    du.plot_colored_isc_vs_isi(corr_res, cca_res, voxels=corr_res.fa.voxel_indices, title='{0} {1} Subject ISI vs ISC: Searchlight Radius {2}'.format(brain_region, subjects, radius), save=True, filename='results/figures/{0}_{1}_{2}'.format(brain_region, subjects, radius))    
+
 
 
 
@@ -98,6 +99,19 @@ def pvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cp
     
     return res
 
+
+
+def tvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cpu=50):
+
+    cds = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
+    
+    res = du.run_searchlight(cds, metric='tvalues', radius=radius, n_cpu=n_cpu)
+    
+    f = open('results/data/full_brain_t_values_r2.pckl', 'wb')
+    pickle.dump(res, f)
+    f.close()
+    
+    return res
     
 
 def timing_test(metric='cca', n_cpu=20, filename=None):
@@ -109,7 +123,7 @@ def timing_test(metric='cca', n_cpu=20, filename=None):
         t_0 = time.time()        
         du.run_searchlight(cds, radius=rad, n_cpu=n_cpu)
         times.append((time.time()-t_0) * n_cpu)
-    
+    [1,5.3,20,53,86]
     plt.clf()
     fig = plt.figure(figsize=(10,6))
     plt.plot(times, '-o')
