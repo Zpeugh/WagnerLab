@@ -139,7 +139,7 @@ def plot_significant(ds, a=0.05, n=34, filename=None):
     if filename:
        fig.savefig(filename) 
     plt.show()
-    return sums
+    return np.array(sums)
 
 
 def plot_scenes(ds, a, filename=None):
@@ -286,3 +286,28 @@ def segment_analysis(ds, t_start, t_end, metric='all', radius=2, n_cpu=20):
     else:
         return run_searchlight(split_ds, metric=metric, radius=radius, n_cpu=n_cpu)
    
+
+# Smooths the sums by doing a sliding window average.  
+# TODO: detect scene boundaries. 
+def detect_scenes(ds, window=5, a=0.01, n=34):
+    
+    X = ds.samples
+    min_t = scipy.stats.t.ppf(1-a, n)    
+    U = np.ma.masked_greater(X, min_t).mask  
+    
+    sums = np.array([np.sum(x) for x in U])
+    avgs = np.zeros_like(sums)
+
+    for i in range(window):
+        buff = np.zeros(i+1)
+        add = np.hstack((buff, sums[:-(i+1)]))
+        avgs = avgs + add
+    
+    return avgs / float(window)   
+    
+            
+
+
+
+
+
