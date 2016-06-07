@@ -16,6 +16,7 @@ from multiprocessing import Pool
 import dataset_utilities as du
 
 
+
 INCORRECT_SR = 2.5112    #The incorrect sample rate for 9 runs (samples/sec)
 CORRECT_SR = 2.5        #The proper sampling rate in samples/sec
 
@@ -35,27 +36,21 @@ subjects = ['0ctr_14oct09ft', '0ctr_30sep09kp', '0smk_17apr09ag', '0ctr_30sep09e
 "0smk_25feb08rz", "0smk_27feb08mi", "0smk_30may08sm" ]
 
 
-  
-##The dictionary to contain the 34 subjects with 3 runs each
-
-offset = len(subjects) #number of subjects that don't need resampled
-
-
-def subject_needs_resampled(subject):
+def _subject_needs_resampled(subject):
     
     return subject in ["0smk_02apr08jb", "0smk_06may08md", "0smk_08may08kw", "0smk_12may08ne", 
             "0smk_12may08sb", "0smk_14mar07jm", "0smk_25feb08rl", "0smk_25feb08rz", 
             "0smk_27feb08mi", "0smk_30may08sm" ]
     
 
-def get_ds(subject,index, mask_path, degrees):        
+def _get_ds(subject,index, mask_path, degrees):        
          
         ds1 = fmri_dataset( BASE_PATH + subject + RUN_PATH.format(1), mask=mask_path )
         ds2 = fmri_dataset( BASE_PATH + subject + RUN_PATH.format(2), mask=mask_path )
         ds3 = fmri_dataset( BASE_PATH + subject + RUN_PATH.format(3), mask=mask_path )
       
           
-        if subject_needs_resampled(subject):            
+        if _subject_needs_resampled(subject):            
             ds1 = fp.ds_resample( ds1, INCORRECT_SR, CORRECT_SR )
             ds2 = fp.ds_resample( ds2, INCORRECT_SR, CORRECT_SR )            
             ds3 = fp.ds_resample( ds3, INCORRECT_SR, CORRECT_SR )    
@@ -65,11 +60,11 @@ def get_ds(subject,index, mask_path, degrees):
         params3 = np.loadtxt( BASE_PATH + subject + PARAM_PATH.format(3) )    
       
         dm = fp.get_design_matrix([params1, params2, params3], 1)
-        ds = fp.combine_runs([ds1, ds2, ds3],CORRECT_SR)
+        ds = fp.combine_runs([ds1, ds2, ds3],CORRECT_SR)                
 
         ds = fp.detrend_data_with_design_matrix(ds, dm) 
         ds = fp.splice_ds_runs(ds,3,38,39)
-        
+                
         zscore(ds, chunks_attr="chunks")
         
         ds.a.mapper = ds1.a.mapper
@@ -79,8 +74,8 @@ def get_ds(subject,index, mask_path, degrees):
         return ds
 
 
-def multiple_get_ds(arg_list):
-    return get_ds(*arg_list)
+def _multiple_get_ds(arg_list):
+    return _get_ds(*arg_list)
 
     
     
@@ -95,11 +90,17 @@ def multiple_get_ds(arg_list):
                         of the samples. Default is bigmask_3x3x3.nii
     degrees             (optional) The number of polynomial degrees to use when
                         detrending the dataset
+    num_threads         The number of different threads to create, will default to 34
+                        which assumes all subjects are being run in parellel.                     
+    combine             (optional) Whether or not to return a single Dataset of all
+                        subjects combined (True, default) or a list containing 
+                        each subject (False).
+    verbose             (optional) True to print some information to the screen
                            
     Returns             the Dataset of num_subj subjects' preprocessed datasets. This
                         has shape (#subjects, #voxels_in_mask, #time_samples).
 ======================================================================================'''
-def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.nii', degrees=1, num_threads=34):
+def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.nii', degrees=1, num_threads=34,  combine=True, verbose=False):
     
     args_list = []
     pool = Pool(num_threads)    
@@ -111,16 +112,20 @@ def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.n
         if index < num_subjects:
             args_list.append( (subject, index, mask_path, degrees,) )           
           
-    results = pool.map(multiple_get_ds, args_list)   
+    results = pool.map(_multiple_get_ds, args_list)   
         
     t_elapsed = time.time() - t_0
-    print("Total time to preprocess: %.3f seconds" % (t_elapsed) ) 
-    print("Number of subjects: %d" % num_subjects )
-    print("Average time per subject: %.4f" % (t_elapsed / float(num_subjects) ))
-    print("Mask used: %s" % mask_path )
     
-    return du.combine_datasets(results)    
-                  
+    if verbose:
+        print("Total time to preprocess: %.3f seconds" % (t_elapsed) ) 
+        print("Number of subjects: %d" % num_subjects )
+        print("Average time per subject: %.4f" % (t_elapsed / float(num_subjects) ))
+        print("Mask used: %s" % mask_path )
+    
+    if combine:
+        return du.combine_datasets(results)    
+    else:
+        return results              
        
  
 

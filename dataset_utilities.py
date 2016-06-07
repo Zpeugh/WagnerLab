@@ -4,19 +4,14 @@ Created on Thu Mar  3 16:09:46 2016
 
 @author: peugh.14
 """
-from sklearn.cross_decomposition import CCA
+
 import numpy as np
 import matplotlib.pyplot as plt
 from mvpa2.tutorial_suite import *
 import fmri_preprocessing as fp
-from scipy.stats import pearsonr
-from scipy.spatial.distance import pdist
 from mvpa2.measures.searchlight import sphere_searchlight
-from fastdtw import fastdtw
-import rcca
 import matplotlib.patches as mpatches
-#from scipy.stats import ttest_1samp as ttest
-from mvpa2.misc.stats import ttest_1samp as ttest
+from measures import *
 
 '''====================================================================================
     Get the combined, resampled, sliced, detrended and normalized Datasets.  
@@ -279,18 +274,15 @@ def plot_colored_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None
     
     blue_x = [x for i, x in enumerate(iscd) if voxels[i][1] <= 20]
     blue_y = [x for i, x in enumerate(isid) if voxels[i][1] <= 20]
-    
     green_x = [x for i, x in enumerate(iscd) if voxels[i][1] > 20 and voxels[i][1] < 41]
     green_y = [x for i, x in enumerate(isid) if voxels[i][1] > 20 and voxels[i][1] < 41]
-    
     red_x = [x for i, x in enumerate(iscd) if voxels[i][1] >= 41]
     red_y = [x for i, x in enumerate(isid) if voxels[i][1] >= 41]
     
     color_array = ['seagreen' for i in range(len(green_x))]
     color_array += ['darkred' for i in range(len(red_x))] 
     color_array += ['steelblue' for i in range(len(blue_x))]       
-   
-    
+       
     X = green_x + red_x + blue_x
     Y = green_y + red_y + blue_y
 
@@ -301,7 +293,9 @@ def plot_colored_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None
     red_marker = mpatches.Patch(color='darkred', label="front")
     
     plt.scatter(X,Y, marker = 'x', color=color_array)
-    fig.legend(handles=[blue_marker, green_marker, red_marker], labels=["Back 1/3rd", "Middle 1/3rd", "Front 1/3rd"], bbox_to_anchor=(0.66,0.125), loc='lower left')
+    fig.legend( handles=[blue_marker, green_marker, red_marker], 
+                labels=["Back 1/3rd", "Middle 1/3rd", "Front 1/3rd"], 
+                bbox_to_anchor=(0.66,0.125), loc='lower left' )
     plt.title(title, fontsize=15)
     plt.xlabel('Intersubject Correlation',fontsize=15)
     plt.ylabel('Intersubject Information', fontsize=15)
@@ -312,31 +306,17 @@ def plot_colored_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None
  
 
 '''====================================================================================
-    Plot the timeseries of a single voxel for a Dataset using matplotlib.
-    
-    ds                  The Dataset object containing samples
-    voxel_position      a number representing which voxel in the dataset to display
-======================================================================================'''    
-def fourier_plot(ds, voxel_position):
-    plt.clf()    
-    plt.figure(figsize=(10,6))
-    plt.plot(np.fft.fft(np.transpose(ds.samples)[voxel_position]))
-    plt.title("Timeseries for voxel {0}".format(voxel_position))
-    plt.axvline(211, color='r', linestyle='--')
-    plt.axvline(422, color='r', linestyle='--')
-    plt.show()
-
-
-'''====================================================================================
     Plot the timeseries of number of voxels activated above a significance threshold.
     
-    ds                  The Dataset object containing pvalues testing the null
-                        hypothesis of mean=0.  
-    a                   The alpha level to count as 'activated'
+    ds          The Dataset object containing pvalues testing the null
+                hypothesis of mean=0.  
+    a           The alpha level to count as 'activated'
+    n           The number of subjects in the test
 ======================================================================================'''
-def plot_significant(ds, a, filename=None):
+def plot_significant(ds, a=0.05, n=34, filename=None):
     X = ds.samples
-    U = np.ma.masked_inside(X, 0,a).mask
+    min_t = scipy.stats.t.ppf(1-a, n)    
+    U = np.ma.masked_greater(X, min_t).mask  
     
     sums = [np.sum(x) for x in U]
     
@@ -380,6 +360,7 @@ def plot_scenes(ds, a, filename=None):
        fig.savefig(filename) 
     plt.show()       
 
+
 '''====================================================================================
     Plot an (n, m) design matrix in grayscale using matplotlib
     
@@ -402,150 +383,6 @@ def show_design_matrix(dm):
 def export_to_nifti(ds, filename):    
     img = map2nifti(ds)
     img.to_filename(filename)
-    
-
-'''=======================================================================================
-    Given a dataset with shape (s, v, t) where 
-        s is the number of subjects
-        v is the number of voxels in each subject
-        t is the constant number of time series for each voxel
-    This function will average across the voxels and then compute all combinations
-    of pairwise pearsons correlations between subjects s.  The mean of this is returned.
-======================================================================================='''
-def pearsons_average(ds):
-    return 1 - np.mean( pdist(np.mean(ds.samples, axis=1), metric='correlation') )
-
-
-
-'''=======================================================================================
-    Given a dataset with shape (s, v, t) where 
-        s is the number of subjects
-        v is the number of voxels in each subject
-        t is the constant number of time series for each voxel
-    All voxels in the searchlight are mean centered at each time point.  All combinations 
-    of pairwise 1st canonical correlations are calculated and the mean value for this
-    region is returned.
-======================================================================================='''    
-def cca(ds):
-    num_subj = ds.shape[0]
-    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
-    centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
-    cca.train([subj.T for subj in centered_ds]) 
-    return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
-  
-
-''' Validate with an 66/33 split of training using calculated weights to predict last 
-    third of the data and then calculate the mean correlation coefficient 
-''' 
-def cca_validate_predict(ds):
-    num_subj = ds.shape[0]
-    num_samples = ds.shape[2]
-    split_point = int(num_samples * .8)    
-    
-    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
-    centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
-    
-    train_set = [subj.T[:split_point,:] for subj in centered_ds]
-    test_set = [subj.T[split_point:,:] for subj in centered_ds]
-            
-    cca.train(train_set)    
-    weights = np.squeeze(cca.ws, axis=(2,))    
-    
-    mean_corrs = []
-    for i, subj in enumerate(test_set):
-        X = np.dot(subj, weights[i].T)        
-        corrs = []
-        for row in subj.T:            
-            corrs.append(np.corrcoef(X, row)[0,1])
-        mean_corrs.append(np.mean(corrs))
-   
-    return np.mean(mean_corrs)
-    
-    
-    
-''' Validate with an 80/20 split of training testing on samples within a subject
-'''    
-def cca_validate(ds):
-    num_subj = ds.shape[0]
-    num_samples = ds.shape[2]
-    split_point = int(num_samples * .66)
-    
-    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
-    centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
-    
-    train_set = [subj.T[:split_point,:] for subj in centered_ds]
-    test_set = [subj.T[split_point:,:] for subj in centered_ds]
-
-    cca.train(train_set)
-    cca.validate(test_set)
-    
-    cancorr = np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
-    predcorr = np.mean(cca.corrs)
-    return np.array([cancorr, predcorr])
-
-def first_canonical_correlation(u, v):
-    
-    cca = CCA(n_components=1)    
-    U_c, V_c = cca.fit_transform(u, v) 
-    return np.corrcoef(U_c.T, V_c.T)[0,1]
-
-
-def sk_cca(ds):
-    num_subj = ds.shape[0]
-    corrs= []
-    for i in range(0, num_subj-1):
-        for j in range(i, num_subj):            
-            U = ds.samples[i,:,:].T
-            V = ds.samples[j, :, :].T            
-            corrs.append(first_canonical_correlation(U, V))
-    return np.mean(corrs)
-
-'''=======================================================================================
-    Given a dataset with shape (s, v, t) where 
-        s is the number of subjects
-        v is the number of voxels in each subject
-        t is the constant number of time series for each voxel
-    This function will compute all combinations of pairwise 1st canonical correlation
-    coefficients between subjects s.  The mean of these is returned.
-======================================================================================='''    
-def cca_uncentered(ds):
-    num_subj = ds.shape[0]
-    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
-    cca.train([subj.T for subj in ds.samples]) 
-    return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
-    
-    
-'''=======================================================================================
-    Given a dataset with shape (s, v, t) where 
-        s is the number of subjects
-        v is the number of voxels in each subject
-        t is the constant number of time series for each voxel
-    This function will average across the voxels and then compute all combinations
-    of pairwise euclidean distances between subjects s.  The mean of this is returned.
-======================================================================================='''
-def euclidean_average(ds):  
-    return np.mean(pdist(np.mean(ds.samples, axis=1), metric='euclidean'))
-
-
-def pvalues(ds):
-    return ttest(ds.samples.mean(axis=1), popmean=0, alternative='greater')[1]
-    
-def tvalues(ds):  
-    return ttest(ds.samples.mean(axis=1), popmean=0, alternative='greater')[0]    
-
-'''=======================================================================================
-    Given a dataset with shape (s, v, t) where 
-        s is the number of subjects
-        v is the number of voxels in each subject
-        t is the constant number of time series for each voxel
-    This function will average across the voxels and then compute all combinations
-    of pairwise dynamic time warped distances between subjects s. The mean of this 
-    is returned.
-======================================================================================='''
-def dtw_average(ds):	
-    X = np.mean(ds.samples, axis=1)
-    return np.mean(pdist(X, lambda u, v: fastdtw(u, v)[0]))
-
 
 
 '''====================================================================================
@@ -577,9 +414,10 @@ def combine_datasets(dslist):
     searchlight analysis on all of the subjects given the metric input.
     
     ds          The Dataset object containing all of the subjects runs
-    metric      (optional) One of 'euclidean', 'dtw', 'cca', 'correlation', 'pvalues'.
+    metric      (optional) One of 'euclidean', 'dtw', 'cca', 'correlation', 'tvalues',
+                'pvalues', 'cca_vp'.
                 Defaults to Pearsons Correlation. 
-    radius      (optional) The radius of the searchlight sphere. Defaults to 3.
+    radius      (optional) The radius of the searchlight sphere. Defaults to 2.
     center_ids  (optional) The feature attribute name to use as the centers for the 
                 searchlights.
     nproc       (optional) Number of processors to use.  Defaults to all available 
@@ -587,18 +425,14 @@ def combine_datasets(dslist):
                         
     Returns      The results of the searchlight
 ======================================================================================''' 
-def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, n_cpu=40):
+def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=None):
 
-    if metric == 'euclidean':
-        measure = euclidean_average
-    elif metric == 'dtw':
+    if metric == 'dtw':
         measure = dtw_average
     elif metric == 'cca_u':
         measure = cca_uncentered
     elif metric == 'cca':
         measure = cca
-    elif metric == 'sk_cca':
-        measure = seq_cca
     elif metric == 'cca_validate':
         measure = cca_validate
     elif metric == 'cca_vp':
@@ -614,118 +448,31 @@ def run_searchlight(ds, metric='correlation', radius=3, center_ids=None, n_cpu=4
         measure = pearsons_average
         
     sl = sphere_searchlight(measure, radius=radius, center_ids=center_ids, nproc=n_cpu)   
-    
+        
     searched_ds = sl(ds)
     searched_ds.fa = ds.fa
     searched_ds.a = ds.a    
     
     return searched_ds
-   
-   
-   
-   
-   
-#########################################################################################  
-
 
 
 '''====================================================================================
-    This should take the mean accross the searchlight of voxels, then look through 
-    all n voxels at time t, and return argmax(), i.e the voxel coordinate of the 
-    'most activated' location for that time.
-======================================================================================''' 
-def maximum_time():
-    return 1        
-
-  
-# takes a sphere through a subject with boolean activation s and returns the number
-# of voxels in that where reported as active for each time series. Returns an array
-# of shape (n, t) where n is the number of active voxels and t is the fixed number of
-# samples over time.
-def count_active(ds):
-    #return 1
-    return np.sum(ds.samples.mask, axis=1)
+TODO:  Finish this function so that it returns a neat analysis of a time segment. 
+======================================================================================'''   
+def segment_analysis(ds, t_start, t_end, metric='all', radius=2, n_cpu=20): 
+   
+    split_ds = ds.copy()   
+    split_ds.samples = ds.samples[:, :, t_start:t_end]
     
-    
-def get_most_active_indices(ds):
-    k = 1    
-    #return np.argsort(ds)[:,-k:]
-    return np.argmax(ds, axis=1)    
-    
-
-#Takes a dataset and searches at each time point for the k most active regions
-#def find_active_regions(ds):
-#    data = ds.samples
-#    voxels = []
-#    for t_slice in data:
-#        voxels.append(ds.fa.voxel_indices[np.argmax(t_slice)])                    
-#    return voxels
-
-# takes a dataset and returns the coordinates of its 5 most activated regions per time
-# point.  The shape of the resulting array is (t, 5, 3) where t is number of time series
-def find_active_regions(dslist, sd_threshold=3.0):   
-    
-    ds_copy = ds.copy()
+    if metric == 'all':
+        corr_res = run_searchlight(split_ds, metric='correlation', radius=radius, n_cpu=n_cpu)
+        print("\nThe average correlation is: {0}".format(np.mean(corr_res.samples)))
+        print("The maximum correlation is: {0}".format(np.max(corr_res.samples)))        
         
-    ds_copy.samples = np.ma.masked_greater(ds.samples, sd_threshold)
-    sl = sphere_searchlight(count_active, radius=3, nproc=58)
-    
-    searched_ds = sl(ds_copy)
-    return searched_ds
-#    results = []
-#    voxel_indices = ds.fa.voxel_indices
-#    for row in searched_ds:
-#        top_five = []
-#        for entry in row:
-#            top_five.append(voxel_indices[entry])
-#        results.append(top_five)
-#    return np.array(results)
-
-
-## TODO:  First run all 34 subjects through a searchlight of radius r, averaging
-## TODO:  the voxel space and putting the means back in the voxel centers, to adjust
-## TODO:  for artifact detection, anatomical difference, and motion.  Then,  
-## TODO:  find out a way to use Searchlight and create a 3D voxel_space which is
-## TODO:  just linear. Then only allow a radius of 1, so the parallelization happens
-## TODO:  across 633 time points.  The distance measure should take in a dataset of
-## TODO:  shape (34, 1, 96068), and return the voxel index [x, y, z] of the maximum
-## TODO:  average searchlight.  Or you could write your own shit and parallelize it.
-
-    
-#==============================================================================
-#     
-# def run_spatio_temporal_searchlight(ds, metric='correlation', s_rad=2, t_rad=2, nproc=58):
-#     
-#     measure = pearsons_average
-#    
-#     if metric == 'euclidean':
-#         measure = euclidean_average
-#     if metric == 'dtw':
-#         measure = dtw_average
-#         
-#     sl = Searchlight(measure, IndexQueryEngine( voxel_indices = Sphere(radius),
-#                                                 time_attr = Sphere(r_rad) ),
-#                                                 nroc = nproc )
-#     
-#     searched_ds = sl(ds)
-#     searched_ds.fa = ds.fa
-#     searched_ds.a = ds.a    
-#     
-#     return searched_ds
-#     
-#==============================================================================
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        t_res = run_searchlight(split_ds, metric='tvalues', radius=radius, n_cpu=n_cpu)       
+        print("\nThe average t-value is: {0}".format(np.mean(t_res.samples)))
+        print("The maximum t-value is: {0}".format(np.max(t_res.samples)))
+        return corr_res, t_res
+    else:
+        return run_searchlight(split_ds, metric=metric, radius=radius, n_cpu=n_cpu)
+   

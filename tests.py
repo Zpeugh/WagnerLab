@@ -6,7 +6,7 @@ Created on Wed May 25 12:46:17 2016
 """
 
 
-import multithreaded as mult
+import load_data as ld
 import dataset_utilities as du
 import pickle
 import matplotlib.pyplot as plt
@@ -28,7 +28,7 @@ import timeit
 def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
     
     # Get the datasets
-    cds = mult.get_2010_preprocessed_data(num_subjects=subjects, mask_path=mask_path, num_threads=n_cpu)
+    cds = ld.get_2010_preprocessed_data(num_subjects=subjects, mask_path=mask_path, num_threads=n_cpu)
     # Run CCA and save results to pickle and nifti file
     cca_res = du.run_searchlight(cds, n_cpu=n_cpu, radius=radius, metric='cca')
     f = open('results/data/{0}_cca_{1}_{2}.pckl'.format(brain_region, subjects, radius), 'wb')
@@ -49,11 +49,9 @@ def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
 
 
 
-
-
 def validation_bargraph(num_subjects, mask_path, radii=[0,1,2,3,4,5], n_cpu=None):
     
-    cds = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
+    cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
     
       
     cancorrs = []
@@ -89,7 +87,7 @@ def validation_bargraph(num_subjects, mask_path, radii=[0,1,2,3,4,5], n_cpu=None
 
 def pvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cpu=50):
 
-    cds = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
+    cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
     
     res = du.run_searchlight(cds, metric='pvalues', radius=radius, n_cpu=n_cpu)
     
@@ -103,7 +101,7 @@ def pvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cp
 
 def tvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cpu=50):
 
-    cds = mult.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
+    cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
     
     res = du.run_searchlight(cds, metric='tvalues', radius=radius, n_cpu=n_cpu)
     
@@ -116,7 +114,7 @@ def tvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cp
 
 def timing_test(metric='cca', n_cpu=20, filename=None):
 
-    cds = mult.get_2010_preprocessed_data(mask_path='masks/aal_l_ifg_oto_3x3x3.nii')
+    cds = ld.get_2010_preprocessed_data(mask_path='masks/aal_l_ifg_oto_3x3x3.nii')
     
     times = []     
     for rad in range(7):
@@ -136,14 +134,7 @@ def timing_test(metric='cca', n_cpu=20, filename=None):
     
     return times
     
-    
-    
-    
-    
-    
-    
-    
-    
+  
     
     
 ## Making masks
