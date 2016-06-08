@@ -62,7 +62,7 @@ def dtw_average(ds):
         
     
 # Validate with an 80/20 split of training using calculated weights to predict last 
-# third of the data and then calculate the mean correlation coefficient  
+# fifth of the time series and then calculate the mean correlation coefficient  
 def cca_validate_predict(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
@@ -79,7 +79,8 @@ def cca_validate_predict(ds):
     
     mean_corrs = []
     for i, subj in enumerate(test_set):
-        X = np.dot(subj, weights[i].T)        
+        X = np.dot(subj, weights[i].T)
+        Y = np.dot(subj)        
         corrs = []
         for row in subj.T:            
             corrs.append(np.corrcoef(X, row)[0,1])
@@ -87,6 +88,32 @@ def cca_validate_predict(ds):
    
     return mean_corrs
     
+
+def validate_cca(ds):
+    num_subj = ds.shape[0]
+    num_samples = ds.shape[2]
+    split_point = int(num_samples * .8)    
+    
+    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
+    centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
+    
+    train_set = [subj.T[:split_point,:] for subj in centered_ds]
+    test_set = [subj.T[split_point:,:] for subj in centered_ds]
+            
+    cca.train(train_set)    
+    weights = np.squeeze(cca.ws, axis=(2,))
+    
+    predicted = []
+    
+    for i in range(num_subj):
+        predicted.append(np.dot(test_set[i], weights[i]))
+
+    return 1 - np.mean(pdist(predicted, metric='correlation'))
+
+
+
+
+
 
 # Validate with an 80/20 split of training testing on samples within a subject    
 def cca_validate(ds):

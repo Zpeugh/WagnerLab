@@ -141,7 +141,7 @@ def plot_significant(ds, a=0.05, n=34, filename=None):
     plt.show()
     return np.array(sums)
 
-
+# Work in progress.
 def plot_scenes(ds, a, filename=None):
     
     FALSE_DISCOVERY_RATE = 0.05
@@ -149,10 +149,8 @@ def plot_scenes(ds, a, filename=None):
     X = ds.samples
     U = np.ma.masked_inside(X, 0,a).mask
     
-    sums = [np.sum(x) for x in U]
-    
+    sums = [np.sum(x) for x in U]    
     threshold = FALSE_DISCOVERY_RATE * TOTAL_VOXELS_IN_BRAIN
-    
     ones = np.zeros(ds.shape[0])
     
     for i, s in enumerate(sums):
@@ -204,18 +202,22 @@ def export_to_nifti(ds, filename):
                         
     Returns      A new Dataset object with all of the datasets combined
 ======================================================================================'''   
-def combine_datasets(dslist):
+def combine_datasets(dslist, transpose=True):
     num_samples = dslist[0].shape[0]
     num_voxels = dslist[0].shape[1]
     ds_tup = ()
     for subj in dslist:
-        ds_tup = ds_tup + (subj.samples.T,)        
+        if transpose:
+            ds_tup = ds_tup + (subj.samples.T,)
+        else:
+            ds_tup = ds_tup + (subj.samples,)
     ds = Dataset(np.vstack(ds_tup).reshape((len(dslist), num_voxels, num_samples)))
     ds.a.mapper = dslist[0].a.mapper
     ds.fa["voxel_indices"] = dslist[0].fa.voxel_indices
     ds.sa.clear()
     ds.sa["subject"] = np.arange(len(dslist))       
     return ds
+
 
     
 '''====================================================================================
@@ -244,7 +246,7 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
     elif metric == 'cca':
         measure = cca
     elif metric == 'cca_validate':
-        measure = cca_validate
+        measure = validate_cca
     elif metric == 'cca_vp':
         measure = cca_validate_predict
     elif metric == 'correlation':
@@ -292,22 +294,45 @@ def segment_analysis(ds, t_start, t_end, metric='all', radius=2, n_cpu=20):
 def detect_scenes(ds, window=5, a=0.01, n=34):
     
     X = ds.samples
+    
     min_t = scipy.stats.t.ppf(1-a, n)    
     U = np.ma.masked_greater(X, min_t).mask  
     
     sums = np.array([np.sum(x) for x in U])
     avgs = np.zeros_like(sums)
 
+
+    plt.plot(sums)
     for i in range(window):
-        buff = np.zeros(i+1)
+        buff = sums[:(i+1)]
         add = np.hstack((buff, sums[:-(i+1)]))
         avgs = avgs + add
     
-    return avgs / float(window)   
+    smoothed = avgs / float(window)
+    fd_threshold = 0.05 * ds.shape[1]
+    vertical_lines = []
+    colors = []
     
-            
+    for i in range(len(smoothed)-1):
+        x = smoothed[i]
+        y = smoothed[i+1]
+        if (y < fd_threshold and x > fd_threshold):            
+            vertical_lines.append(i+1)
+            colors.append('red')
+        elif (x<fd_threshold and y>fd_threshold):
+            vertical_lines.append(i-1)
+            colors.append('blue')
+    
+    vertical_lines = (np.array(vertical_lines) * 2.5) / 60.0
+    X = np.arange(len(smoothed)) * 2.5/60.0
+    
+    plt.clf()    
+    plt.figure(figsize=(12,4))  
+    plt.plot(X,smoothed)
+    for i, line in enumerate(vertical_lines):
+        plt.axvline(line, color=colors[i])
+    plt.xlabel('Time (minutes)')
+    plt.show()
 
-
-
-
+    
 
