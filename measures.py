@@ -22,9 +22,22 @@ Description:
     metric and returns either a single value or an array of values depending on the metric.
 """
 
-
+# returns the average Pearson's correlation between all pairs
 def pearsons_average(ds):
     return 1 - np.mean( pdist(np.mean(ds.samples, axis=1), metric='correlation') )
+    
+# return all combinations of Pearson's correlations between pairs
+def all_pearsons_averages(ds):
+    return 1 - pdist(np.mean(ds.samples, axis=1), metric='correlation')
+
+# Returns all first canonical correlations, pre-mean centered at each time point  
+def all_cca(ds):
+    num_subj = ds.shape[0]
+    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
+    centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
+    cca.train([subj.T for subj in centered_ds]) 
+    return cca.cancorrs[0][np.triu_indices(num_subj,k=1)]
+
 
 # Returns the average first canonical correlation, mean centering at each time point  
 def cca(ds):
@@ -61,35 +74,11 @@ def dtw_average(ds):
     return np.mean(pdist(X, lambda u, v: fastdtw(u, v)[0]))    
         
     
-# Validate with an 80/20 split of training using calculated weights to predict last 
-# fifth of the time series and then calculate the mean correlation coefficient  
-def cca_validate_predict(ds):
-    num_subj = ds.shape[0]
-    num_samples = ds.shape[2]
-    split_point = int(num_samples * .8)    
-    
-    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
-    centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
-    
-    train_set = [subj.T[:split_point,:] for subj in centered_ds]
-    test_set = [subj.T[split_point:,:] for subj in centered_ds]
-            
-    cca.train(train_set)    
-    weights = np.squeeze(cca.ws, axis=(2,))    
-    
-    mean_corrs = []
-    for i, subj in enumerate(test_set):
-        X = np.dot(subj, weights[i].T)
-        Y = np.dot(subj)        
-        corrs = []
-        for row in subj.T:            
-            corrs.append(np.corrcoef(X, row)[0,1])
-        mean_corrs.append(np.mean(corrs))
    
-    return mean_corrs
-    
-
-def validate_cca(ds):
+# Train on 80% of each subjects data, get the first canonical weights and apply them to
+# the last 20% of the data, then take all possible pairwise Pearson's correlations
+# between the subjects and return the average.
+def cca_validate(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
     split_point = int(num_samples * .8)    
@@ -111,15 +100,11 @@ def validate_cca(ds):
     return 1 - np.mean(pdist(predicted, metric='correlation'))
 
 
-
-
-
-
-# Validate with an 80/20 split of training testing on samples within a subject    
-def cca_validate(ds):
+# Run pyrcca's validate with an 80/20 split of training testing on samples within subjects    
+def rcca_validate(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
-    split_point = int(num_samples * .66)
+    split_point = int(num_samples * .80)
     
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
     centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)

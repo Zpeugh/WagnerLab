@@ -168,6 +168,31 @@ def plot_scenes(ds, a, filename=None):
        fig.savefig(filename) 
     plt.show()       
 
+'''====================================================================================
+    Takes a dataset with sample attributes of features and returns an ordered list of
+    all possible pairwise combinations either multiplied, divided, or subtracted.  The 
+    order returned is that same as that which scipy.spatial.distance.pdist returns.
+    
+    ds          The Dataset object with sample attributes to pairwise combine.
+    feature     The feature in ds.sa
+    method      One of 'multiply', 'divide', 'difference'
+    
+    returns     a list of length (n choose 2) where n is the length of the feature array
+======================================================================================''' 
+def pairwise_feature_list(ds, feature, method='multiply'):
+    feature = ds.sa[feature]
+    num_subj = len(feature)
+    X = []
+    for i in range(num_subj - 1):
+        for j in range(i+1, num_subj):
+            if method == 'multiply':
+                X.append(feature[i] * feature[j])
+            elif method == 'difference':
+                X.append(abs(feature[i] - feature[j]))
+            elif method == 'divide':
+                X.append(feature[i] / feature[j])
+    return X
+
 
 '''====================================================================================
     Plot an (n, m) design matrix in grayscale using matplotlib
@@ -245,12 +270,16 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
         measure = cca_uncentered
     elif metric == 'cca':
         measure = cca
+    elif metric == 'all_cca':
+        measure = all_cca
     elif metric == 'cca_validate':
-        measure = validate_cca
-    elif metric == 'cca_vp':
-        measure = cca_validate_predict
+        measure = cca_validate
+    elif metric == 'rcca_validate':
+        measure = rcca_validate
     elif metric == 'correlation':
         measure = pearsons_average
+    elif metric == 'all_pearsons':
+        measure = all_pearsons_averages
     elif metric == 'pvalues':
         measure = pvalues
     elif metric == 'tvalues':
@@ -300,7 +329,6 @@ def detect_scenes(ds, window=5, a=0.01, n=34):
     
     sums = np.array([np.sum(x) for x in U])
     avgs = np.zeros_like(sums)
-
 
     plt.plot(sums)
     for i in range(window):

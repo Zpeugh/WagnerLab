@@ -20,21 +20,15 @@ import warnings
 INCORRECT_SR = 2.5112    #The incorrect sample rate for 9 runs (samples/sec)
 CORRECT_SR = 2.5        #The proper sampling rate in samples/sec
 
-#MASK_PATH = 'masks/aal_l_hippocampus_3x3x3.nii'
 BASE_PATH = '/lab/neurodata/ddw/dartmouth/2010_SP/SUBJECTS/'
 RUN_PATH = "/FUNCTIONAL/swuabold{0}.nii"
 PARAM_PATH = "/FUNCTIONAL/rp_abold{0}.txt"    
 
-##The list of subject file names with the proper sampling rate of 2.5 s/sec
-subjects = ['0ctr_14oct09ft', '0ctr_30sep09kp', '0smk_17apr09ag', '0ctr_30sep09ef', 
-'0ctr_14oct09gl', '0ctr_30sep09sh', '0smk_22apr09cc','0ctr_14oct09js', '0ctr_30sep09so', 
-'0ctr_18apr09yg', '0ctr_30sep09zl', '0ctr_19apr09tj', '0ctr_26jul09bc', '0smk_28sep09cb',
-'0ctr_28sep09kr', '0ctr_28sep09sb', '0ctr_28sep09sg', '0ctr_29sep09ef', '0ctr_29sep09gp', 
-'0ctr_29sep09mb', '0smk_13oct09ad', '0smk_31jul07sc_36slices', '0smk_07aug07lr_36slices',
-'0smk_07jun07nw_36slices', "0smk_02apr08jb", "0smk_06may08md", "0smk_08may08kw", 
-"0smk_12may08ne", "0smk_12may08sb", "0smk_14mar07jm", "0smk_25feb08rl", 
-"0smk_25feb08rz", "0smk_27feb08mi", "0smk_30may08sm" ]
-
+SUBJECTS = ['0ctr_14oct09ft', '0ctr_14oct09gl', '0ctr_14oct09js', '0ctr_18apr09yg','0ctr_19apr09tj', '0ctr_26jul09bc', '0ctr_28sep09kr', '0ctr_28sep09sb','0ctr_28sep09sg', '0ctr_29sep09ef', '0ctr_29sep09gp', 
+'0ctr_29sep09mb', '0ctr_30sep09ef', '0ctr_30sep09kp', '0ctr_30sep09sh', '0ctr_30sep09so','0ctr_30sep09zl', '0smk_02apr08jb', '0smk_06may08md', '0smk_07aug07lr_36slices','0smk_07jun07nw_36slices', '0smk_08may08kw', 
+'0smk_12may08ne', '0smk_12may08sb', '0smk_13oct09ad', '0smk_14mar07jm',
+'0smk_17apr09ag', '0smk_22apr09cc', '0smk_25feb08rl', '0smk_25feb08rz',
+'0smk_27feb08mi', '0smk_28sep09cb', '0smk_30may08sm', '0smk_31jul07sc_36slices']
 
 def _subject_needs_resampled(subject):
     
@@ -105,8 +99,8 @@ def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.n
     pool = Pool(num_threads)    
     
     t_0 = time.time()
-    ##store all of the normal datasets in the dictionary
-    for index, subject in enumerate(subjects):
+    
+    for index, subject in enumerate(SUBJECTS):
  
         if index < num_subjects:
             args_list.append( (subject, index, mask_path, degrees,) )           
@@ -121,8 +115,32 @@ def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.n
         print("Average time per subject: %.4f" % (t_elapsed / float(num_subjects) ))
         print("Mask used: %s" % mask_path )
     
+    
     if combine:
-        return du.combine_datasets(results)    
+        cds = du.combine_datasets(results)
+        
+        if num_subjects == 34:
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/like_34.txt') as f:
+                cds.sa["likes"] = map(float, f)    
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/trans_34.txt') as f:
+                cds.sa["transportation"] = map(float, f)  
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/transddw_34.txt') as f:
+                cds.sa["transportation"] = map(float, f)  
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/traits_34.txt') as f:
+                cds.sa["traits"] = map(float, f)  
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/acting_34.txt') as f:
+                cds.sa["acting"] = map(float, f)
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/actorlike_34.txt') as f:
+                cds.sa["actor_like"] = map(float, f)
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/IRIec_34.txt') as f:
+                cds.sa["IRIec"] = map(float, f)
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/IRIfs_34.txt') as f:
+                cds.sa["IRIfs"] = map(float, f)
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/IRIpd_34.txt') as f:
+                cds.sa["IRIpd"] = map(float, f)
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/IRIpt_34.txt') as f:
+                cds.sa["IRIpt"] = map(float, f)
+        return cds   
     else:
         return results              
        

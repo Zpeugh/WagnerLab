@@ -12,6 +12,8 @@ import pickle
 import matplotlib.pyplot as plt
 import time
 import timeit
+from mvpa2.suite import Dataset
+import numpy as np
 
 '''=======================================================================================
     Run intersubject correlation (Pearson's r) and intersubject information 
@@ -134,8 +136,80 @@ def timing_test(metric='cca', n_cpu=20, filename=None):
     
     return times
     
-  
+def compare_transportation_groups(cds, high=5.5, low=3, metric='correlation', radius=2, n_cpu=20):
     
+    num_samples = cds.shape[2]
+    num_voxels = cds.shape[1]
+    
+    high_indices = [i for i, x in enumerate(cds.sa.transportation) if x>=high]
+    low_indices = [i for i, x in enumerate(cds.sa.transportation) if x<=low]
+    
+    print("\n{0} subjects have scores above {1}".format(len(high_indices), high))
+    print("{0} subjects have scores below {1}".format(len(low_indices), low))    
+    
+    # Get the Dataset for subjects with high 'transportation' scores
+    high_tup = ()
+    for i in high_indices:
+        high_tup = high_tup + (cds.samples[i, :, :],)
+    
+    high_ds = Dataset(np.vstack(high_tup).reshape((len(high_indices), num_voxels, num_samples)))    
+    high_ds.a.mapper = cds.a.mapper
+    high_ds.fa["voxel_indices"] = cds.fa.voxel_indices    
+   
+    # Get the Dataset for subjects with low 'transportation' scores
+    low_tup = ()
+    for i in low_indices:
+        low_tup = low_tup + (cds.samples[i, :, :],)
+    
+    low_ds = Dataset(np.vstack(low_tup).reshape((len(low_indices), num_voxels, num_samples)))    
+    low_ds.a.mapper = cds.a.mapper
+    low_ds.fa["voxel_indices"] = cds.fa.voxel_indices
+
+
+    high_res = du.run_searchlight(high_ds, radius=radius, n_cpu=n_cpu, metric=metric)
+    low_res = du.run_searchlight(low_ds, radius=radius, n_cpu=n_cpu, metric=metric)
+    
+    
+    print("High transportation average {0} value: {1}".format(metric, high_res.samples.mean()))    
+    print("Low transportation average {0} value: {1}".format(metric, low_res.samples.mean()))   
+    
+    return high_res, low_res
+    
+
+
+    
+def test_all_pairs(cds, radius=2, n_cpu=20, metric='correlation', method='multiply', feature='transportation'):
+    
+   
+    X = du.pairwise_feature_list(cds, feature=feature, method=method)
+    
+    if metric == 'correlation':
+        res = du.run_searchlight(cds, radius=radius, n_cpu=n_cpu, metric='all_pearsons')
+    elif metric == 'cca':
+        res = du.run_searchlight(cds, radius=radius, n_cpu=n_cpu, metric='all_cca')
+    else:
+        print("INVALID METRIC.  Choose 'correlation' or 'cca'")
+    means = np.mean(res.samples, axis=1)   
+    
+    plt.plot(X, means, 'x')
+    
+    return res
+    
+    
+def plot_feature_vs_result(cds, means, feature, title, method='multiply'):
+
+    X = du.pairwise_feature_list(cds, feature, method=method)
+    
+    plt.plot(X, means, 'o')
+    plt.xlabel(feature)   
+    plt.ylabel('Correlation')
+    plt.title(title)
+    plt.show
+    
+    print("Correlation: {0}".format(np.corrcoef(X, means)[0,1]))
+
+
+
     
 ## Making masks
 ## open fslview
