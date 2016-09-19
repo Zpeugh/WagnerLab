@@ -50,7 +50,6 @@ def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
 
 
 
-
 def validation_bargraph(num_subjects, mask_path, radii=[0,1,2,3,4,5], n_cpu=None):
     
     cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)

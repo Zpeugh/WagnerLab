@@ -26,22 +26,17 @@ import scipy.signal as ss
 ======================================================================================'''
 def ds_resample( ds, old_sample_rate, new_sample_rate ):
  
-    original_sample_length = len(ds.samples)
+    original_sample_length = ds.samples.shape[0]
     resampling_number =  (original_sample_length * new_sample_rate ) / old_sample_rate
-    transposed_samples = np.transpose( ds.samples )
-    resampled_samples = transposed_samples.copy()
-        
-    for i, row in enumerate(transposed_samples):
-        resampled_data = ss.resample(row, resampling_number)
-        samples_gained = len(resampled_data) - original_sample_length        
-        if samples_gained > -1:
-            resampled_samples[i] = resampled_data[:original_sample_length]
-        else:
-            resampled_samples[i] = np.append(resampled_data, np.zeros(-(samples_gained) ) )
-            
-    ds.samples = np.transpose(resampled_samples)    
+    resampled_data = ss.resample(ds.samples, resampling_number, axis=0)
+    samples_lost = original_sample_length - resampled_data.shape[0]
+    if samples_lost > 0:
+        padding = np.zeros((samples_lost, ds.shape[1]))
+        ds.samples = np.vstack((resampled_data, padding))
+    elif samples_lost < 0:
+        ds.samples = resampled_data[:,-samples_lost]
     return ds
-    
+ 
     
 '''========================================================
     Function to normalize the dataset samples by Z_scoring

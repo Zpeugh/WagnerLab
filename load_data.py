@@ -13,11 +13,13 @@ from mvpa2.tutorial_suite import *
 import fmri_preprocessing as fp
 import time
 from multiprocessing import Pool
+from multiprocessing import Process
+from multiprocessing import Manager
 import dataset_utilities as du
 import warnings
-
-
-INCORRECT_SR = 2.5112    #The incorrect sample rate for 9 runs (samples/sec)
+    
+    
+INCORRECT_SR = 2.5112    #The incorrect sample rate for 10 runs (samples/sec)
 CORRECT_SR = 2.5        #The proper sampling rate in samples/sec
 
 BASE_PATH = '/lab/neurodata/ddw/dartmouth/2010_SP/SUBJECTS/'
@@ -29,6 +31,9 @@ SUBJECTS = ['0ctr_14oct09ft', '0ctr_14oct09gl', '0ctr_14oct09js', '0ctr_18apr09y
 '0smk_12may08ne', '0smk_12may08sb', '0smk_13oct09ad', '0smk_14mar07jm',
 '0smk_17apr09ag', '0smk_22apr09cc', '0smk_25feb08rl', '0smk_25feb08rz',
 '0smk_27feb08mi', '0smk_28sep09cb', '0smk_30may08sm', '0smk_31jul07sc_36slices']
+
+#SUBJECTS = ['0smk_02apr08jb']
+
 
 def _subject_needs_resampled(subject):
     
@@ -42,7 +47,8 @@ def _get_ds(subject,index, mask_path, degrees):
         ds1 = fmri_dataset( BASE_PATH + subject + RUN_PATH.format(1), mask=mask_path )
         ds2 = fmri_dataset( BASE_PATH + subject + RUN_PATH.format(2), mask=mask_path )
         ds3 = fmri_dataset( BASE_PATH + subject + RUN_PATH.format(3), mask=mask_path )
-                
+        
+        print(ds1.shape)
         if _subject_needs_resampled(subject):            
             ds1 = fp.ds_resample( ds1, INCORRECT_SR, CORRECT_SR )
             ds2 = fp.ds_resample( ds2, INCORRECT_SR, CORRECT_SR )            
@@ -64,15 +70,100 @@ def _get_ds(subject,index, mask_path, degrees):
      
         ds.sa["subject"] = np.zeros(ds.shape[0]) + index
 
-        return ds
+        print("Finished subject: {0}".format(index))
+        return ds        
+        #result_list[index] = ds
 
 # Simple wrapper function to call _get_ds multiple times
 def _multiple_get_ds(arg_list):
     return _get_ds(*arg_list)
 
     
-    
 
+def new_get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.nii', degrees=1, num_threads=34,  combine=True, verbose=False):
+    
+    args_list = []
+    processes = []
+    results = []
+    pool = Pool(num_threads)    
+    
+    t_0 = time.time()
+    
+    for index, subject in enumerate(SUBJECTS):
+ 
+        if index < num_subjects:
+            processes.append(pool.apply_async(_get_ds, [subject, index, mask_path, degrees]))     
+    
+    pool.close()
+    pool.join()
+    
+    for proc in processes:
+        results.append(proc.get())
+        
+    t_elapsed = time.time() - t_0
+    
+    if verbose:
+        print("Total time to preprocess: %.3f seconds" % (t_elapsed) ) 
+        print("Number of subjects: %d" % num_subjects )
+        print("Average time per subject: %.4f" % (t_elapsed / float(num_subjects) ))
+        print("Mask used: %s" % mask_path )
+    
+    
+    if combine:      
+        if verbose:
+            print("combining datasets")
+        t_0 = time.time()
+        cds = du.combine_datasets(results)
+        t_elapsed = time.time() - t_0
+        if verbose:
+            print("combining datasets took {0} seconds".format(t_elapsed))
+        if num_subjects == 34:
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/like_34.txt') as f:
+                cds.sa["likes"] = map(float, f)    
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/trans_34.txt') as f:
+                cds.sa["transportation"] = map(float, f)  
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/transddw_34.txt') as f:
+                cds.sa["transportation"] = map(float, f)  
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/traits_34.txt') as f:
+                cds.sa["traits"] = map(float, f)  
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/acting_34.txt') as f:
+                cds.sa["acting"] = map(float, f)
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/actorlike_34.txt') as f:
+                cds.sa["actor_like"] = map(float, f)
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/IRIec_34.txt') as f:
+                cds.sa["IRIec"] = map(float, f)
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/IRIfs_34.txt') as f:
+                cds.sa["IRIfs"] = map(float, f)
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/IRIpd_34.txt') as f:
+                cds.sa["IRIpd"] = map(float, f)
+            with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/IRIpt_34.txt') as f:
+                cds.sa["IRIpt"] = map(float, f)
+        return cds   
+    else:
+        return results        
+
+
+def get_2010_scene_splits():
+    SCENE_CHANGE_FILE = "/lab/neurodata/zachs_work/matchstickmen_scenes.txt"
+    SEC_PER_MIN = 60
+    
+    with open(SCENE_CHANGE_FILE, 'r') as f:
+        for line in f:
+            line = line.strip()
+            times = line.split(':')
+           # print(line)            
+            #print(times)
+
+            minutes = int(times[1])
+            seconds = float(times[2])
+            
+            total_seconds = minutes * SEC_PER_MIN + seconds
+            
+            print(total_seconds / float(2.5))
+            
+            
+            
+        
 '''====================================================================================
     Get the combined, resampled, sliced, detrended and normalized Datasets, stacked and
     put together into one Dataset
@@ -116,9 +207,14 @@ def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.n
         print("Mask used: %s" % mask_path )
     
     
-    if combine:
+    if combine:      
+        if verbose:
+            print("combining datasets")
+        t_0 = time.time()
         cds = du.combine_datasets(results)
-        
+        t_elapsed = time.time() - t_0
+        if verbose:
+            print("combining datasets took {0} seconds".format(t_elapsed))
         if num_subjects == 34:
             with open('/lab/neurodata/ddw/dartmouth/2010_SP/ROI/VARIABLES/like_34.txt') as f:
                 cds.sa["likes"] = map(float, f)    
@@ -144,7 +240,7 @@ def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.n
     else:
         return results              
        
- 
+
 
 '''====================================================================================
     Get the combined, resampled Datasets that are not detrended.  Currently does not
@@ -162,7 +258,7 @@ def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.n
 ======================================================================================'''
 def get_raw_2010_datasets(num_samples=34, mask_path='masks/bigmask_3x3x3.nii', slice_samples=True):
     
-    incorrect_sr = 2.512    #The incorrect sample rate for 9 runs (samples/sec)
+    incorrect_sr = 2.5112    #The incorrect sample rate for 9 runs (samples/sec)
     correct_sr = 2.5        #The proper sampling rate in samples/sec
    
     mask_path = 'masks/bigmask_3x3x3.nii'

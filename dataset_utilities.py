@@ -363,4 +363,26 @@ def detect_scenes(ds, window=5, a=0.01, n=34):
     plt.show()
 
     
+#def detect_high_correlation_sections(cds, )    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
