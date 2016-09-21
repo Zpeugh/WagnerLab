@@ -144,23 +144,33 @@ def new_get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3
 
 
 def get_2010_scene_splits():
-    SCENE_CHANGE_FILE = "/lab/neurodata/zachs_work/matchstickmen_scenes.txt"
+    SCENE_CHANGE_FILE = "/lab/neurodata/zachs_work/scenes_run{0}.txt"
     SEC_PER_MIN = 60
+    RUN_BEG_CUTOFF = 38
+    SAMPLES_PER_RUN = 211
+    RUN_END_CUTOFF = 288-39
     
-    with open(SCENE_CHANGE_FILE, 'r') as f:
-        for line in f:
-            line = line.strip()
-            times = line.split(':')
-           # print(line)            
-            #print(times)
-
-            minutes = int(times[1])
-            seconds = float(times[2])
+    scene_change_times = []
+    
+    for run in range(1,4):
+        offset = (run-1) * SAMPLES_PER_RUN
+        with open(SCENE_CHANGE_FILE.format(run), 'r') as f:
+            for line in f:
+                line = line.strip()
+                times = line.split(':')
+                
+                
+                minutes = int(times[0])
+                seconds = float(times[1])
+                    
+                total_seconds = minutes * SEC_PER_MIN + seconds
+                total_time = total_seconds / float(2.5)
+                
+                if (total_time > RUN_BEG_CUTOFF and total_time < RUN_END_CUTOFF):
+                    scene_change_times.append(total_time + offset - RUN_BEG_CUTOFF)
+    return scene_change_times
             
-            total_seconds = minutes * SEC_PER_MIN + seconds
-            
-            print(total_seconds / float(2.5))
-            
+                
             
             
         

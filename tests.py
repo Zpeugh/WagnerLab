@@ -207,7 +207,12 @@ def plot_feature_vs_result(cds, means, feature, title, method='multiply'):
     
     print("Correlation: {0}".format(np.corrcoef(X, means)[0,1]))
 
+def plot_activation_vs_scene_change(mask_path, window=5, a=0.01, n_cpu=20):
 
+    scenes = ld.get_2010_scene_splits()
+    cds = ld.get_2010_preprocessed_data(mask_path=mask_path, num_threads=n_cpu)
+    res = du.run_searchlight(cds, metric="tvalues", n_cpu=n_cpu)
+    du.plot_activation_with_scenes(res, scenes, window=window, a=a, n=cds.shape[0])
 
     
 ## Making masks

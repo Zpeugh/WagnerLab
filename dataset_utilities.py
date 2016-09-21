@@ -11,7 +11,9 @@ from mvpa2.tutorial_suite import *
 import fmri_preprocessing as fp
 from mvpa2.measures.searchlight import sphere_searchlight
 import matplotlib.patches as mpatches
+from mvpa2.misc.stats import ttest_1samp as ttest
 from measures import *
+
 
 
 
@@ -302,8 +304,8 @@ TODO:  Finish this function so that it returns a neat analysis of a time segment
 ======================================================================================'''   
 def segment_analysis(ds, t_start, t_end, metric='all', radius=2, n_cpu=20): 
    
-    split_ds = ds.copy()   
-    split_ds.samples = ds.samples[:, :, t_start:t_end]
+    split_ds = Dataset(ds.samples[:, :, t_start:t_end])   
+    split_ds.fa = ds.fa
     
     if metric == 'all':
         corr_res = run_searchlight(split_ds, metric='correlation', radius=radius, n_cpu=n_cpu)
@@ -318,16 +320,32 @@ def segment_analysis(ds, t_start, t_end, metric='all', radius=2, n_cpu=20):
         return run_searchlight(split_ds, metric=metric, radius=radius, n_cpu=n_cpu)
    
 
+def scene_segmentation_analysis(cds, scenes, metric='correlation', radius=2, n_cpu=20):
+    scene_correlations = dict()
+    scene_ds = dict()
+    for i in range (0, len(scenes)-1):
+        ds = segment_analysis(cds, int(scenes[i]), int(scenes[i+1]), metric=metric)
+        ds_mean = np.mean(ds.samples)
+        scene_correlations["scene_{0}".format(i+1)] = ds_mean
+        scene_ds["scene_{0}".format(i+1)] = ds
+        print("Finished scene {0}: Mean correlation was {1}".format(i, ds_mean))
+        
+    return scene_ds, scene_correlations
+
+
+
+
 # Smooths the sums by doing a sliding window average.  
 # TODO: detect scene boundaries. 
 def detect_scenes(ds, window=5, a=0.01, n=34):
     
     X = ds.samples
+    total_voxels = ds.shape[1]
     
     min_t = scipy.stats.t.ppf(1-a, n)    
     U = np.ma.masked_greater(X, min_t).mask  
     
-    sums = np.array([np.sum(x) for x in U])
+    sums = np.array([np.sum(x) / float(total_voxels) for x in U])
     avgs = np.zeros_like(sums)
 
     plt.plot(sums)
@@ -337,7 +355,7 @@ def detect_scenes(ds, window=5, a=0.01, n=34):
         avgs = avgs + add
     
     smoothed = avgs / float(window)
-    fd_threshold = 0.05 * ds.shape[1]
+    fd_threshold = 0.10
     vertical_lines = []
     colors = []
     
@@ -352,7 +370,7 @@ def detect_scenes(ds, window=5, a=0.01, n=34):
             colors.append('blue')
     
     vertical_lines = (np.array(vertical_lines) * 2.5) / 60.0
-    X = np.arange(len(smoothed)) * 2.5/60.0
+    X = np.arange(len(smoothed)) * 2.5 / 60.0
     
     plt.clf()    
     plt.figure(figsize=(12,4))  
@@ -360,16 +378,68 @@ def detect_scenes(ds, window=5, a=0.01, n=34):
     for i, line in enumerate(vertical_lines):
         plt.axvline(line, color=colors[i])
     plt.xlabel('Time (minutes)')
+    plt.ylabel("% of brain 'activated' with a={0}".format(a))
     plt.show()
 
+
+'''
     
-#def detect_high_correlation_sections(cds, )    
+    plot_title     Should be a string with {0} in it for the run number of each plot
+
+'''    
+def plot_activation_with_scenes(ds, scenes, plot_title, window=5, a=0.01, n=34):
     
+    X = ds.samples
+    total_voxels = ds.shape[1]
     
+    min_t = scipy.stats.t.ppf(1-a, n)    
+    U = np.ma.masked_greater(X, min_t).mask  
     
+    sums = np.array([np.sum(x) / float(total_voxels) for x in U])
+    avgs = np.zeros_like(sums)
+
+    plt.plot(sums)
+    for i in range(0,window):
+        buff = sums[:(i+1)]
+        add = np.hstack((buff, sums[:-(i+1)]))
+        avgs = avgs + add
     
+    smoothed = avgs / float(window)
+
+    for run in range(1,4):    
+        plt.clf()    
+        plt.figure(figsize=(12,4))  
+        run_beg = (run-1)*211        
+        run_end = run*211
+        plt.plot(smoothed[run_beg:run_end])
+        for i, line in enumerate(scenes):
+            if (line < run_end and line > run_beg):            
+                plt.axvline((line - run_beg), color='r')
+        plt.xlabel('Time (2.5second slices)')
+        plt.ylabel("% of brain 'activated' with a={0}".format(a))
+        plt.title("Run {0} Brain Activation Compared to Scene Change".format(run))
+        plt.show()
+        plt.savefig(plot_title.format(run))
+
+def find_common_activation_zones_at_scene_change(cds, scenes, padding=2):
+
+    differences = dict()
     
-    
+    for i in range(0, len(scenes)-1):
+        scene_change = scenes[i]
+        voxels_before = np.mean(cds.samples[:,:,scene_change-padding:scene_change], axis=2)
+        voxels_after = np.mean(cds.samples[:,:,scene_change:scene_change+padding], axis=2)
+        
+        t_values_before = ttest(voxels_before, popmean=0, alternative='greater')[0]
+        t_values_after = ttest(voxels_after, popmean=0, alternative='greater')[0]
+        
+        samples = abs(t_values_before - t_values_after)
+        samples = (samples - np.mean(samples)) / np.std(samples)
+        ds = Dataset(samples)       
+        ds.a = cds.a
+        differences["scene_{0}".format(i+1)] = ds
+        
+    return differences
     
     
     
