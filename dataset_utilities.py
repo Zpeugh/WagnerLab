@@ -418,8 +418,8 @@ def plot_activation_with_scenes(ds, scenes, plot_title, window=5, a=0.01, n=34):
         plt.xlabel('Time (2.5second slices)')
         plt.ylabel("% of brain 'activated' with a={0}".format(a))
         plt.title("Run {0} Brain Activation Compared to Scene Change".format(run))
-        plt.show()
         fig.savefig(plot_title.format(run))
+        plt.show()
 
 def find_common_activation_zones_at_scene_change(cds, scenes, padding=2):
 
