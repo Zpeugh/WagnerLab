@@ -408,7 +408,7 @@ def plot_activation_with_scenes(ds, scenes, plot_title, window=5, a=0.01, n=34):
 
     for run in range(1,4):    
         plt.clf()    
-        plt.figure(figsize=(12,4))  
+        fig = plt.figure(figsize=(12,4))  
         run_beg = (run-1)*211        
         run_end = run*211
         plt.plot(smoothed[run_beg:run_end])
@@ -419,7 +419,7 @@ def plot_activation_with_scenes(ds, scenes, plot_title, window=5, a=0.01, n=34):
         plt.ylabel("% of brain 'activated' with a={0}".format(a))
         plt.title("Run {0} Brain Activation Compared to Scene Change".format(run))
         plt.show()
-        plt.savefig(plot_title.format(run))
+        fig.savefig(plot_title.format(run))
 
 def find_common_activation_zones_at_scene_change(cds, scenes, padding=2):
 
