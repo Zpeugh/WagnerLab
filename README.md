@@ -8,6 +8,9 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 ### wagner_2010/
 &nbsp;&nbsp;&nbsp;&nbsp;All of the results and scripts applicable to Dr. Dylan Wagner's 2010 study on the movie <em>Matchstick Men</em>
 
+##### load_data.py
+&nbsp;&nbsp;&nbsp;&nbsp;This is a convenience file with methods to load in the 2010 data.
+
 ##### tests.py
 &nbsp;&nbsp;&nbsp;&nbsp;Various adjustable tests for running on the 2010 dataset
 
@@ -24,9 +27,6 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 
 ##### fmri_preprocessing.py
 &nbsp;&nbsp;&nbsp;&nbsp;Here are all of the functions for combining, splicing, and detrending data raw NIFTI data from the fMRI. 
-
-##### load_data.py
-&nbsp;&nbsp;&nbsp;&nbsp;This is a convenience file with methods to load in the 2010 data.
 
 ##### dataset_utilities.py
 &nbsp;&nbsp;&nbsp;&nbsp;This module holds all of the functions to run analyses on preprocessed Datasets
