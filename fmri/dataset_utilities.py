@@ -424,6 +424,7 @@ def plot_activation_with_scenes(ds, scenes, plot_title, window=5, a=0.01, n=34):
 def find_common_activation_zones_at_scene_change(cds, scenes, padding=2):
 
     differences = dict()
+    all_scenes = []
     
     for i in range(0, len(scenes)-1):
         scene_change = scenes[i]
@@ -433,13 +434,26 @@ def find_common_activation_zones_at_scene_change(cds, scenes, padding=2):
         t_values_before = ttest(voxels_before, popmean=0, alternative='greater')[0]
         t_values_after = ttest(voxels_after, popmean=0, alternative='greater')[0]
         
+        # TODO:  make the sample shape (1, n) not (n, 1)=acenrsvz[]
         samples = abs(t_values_before - t_values_after)
         samples = (samples - np.mean(samples)) / np.std(samples)
-        ds = Dataset(samples)       
+        if (i == 0):
+            all_scenes = samples
+        else:
+            all_scenes = np.vstack((all_scenes,samples))
+        print("Processed scene {0}/{1}".format(i+1, len(scenes)-1))
+        ds = Dataset(samples.reshape((1, samples.shape[0])))       
+        ds.fa = cds.fa        
         ds.a = cds.a
         differences["scene_{0}".format(i+1)] = ds
         
-    return differences
+    avgs = all_scenes.mean(axis=0).reshape((1, all_scenes[0].shape[0]))
+    ds = Dataset(avgs)       
+    ds.fa = cds.fa        
+    ds.a = cds.a    
+        
+        
+    return differences, ds
     
     
     

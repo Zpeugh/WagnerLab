@@ -50,38 +50,41 @@ def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
 
 
 
-def validation_bargraph(num_subjects, mask_path, radii=[0,1,2,3,4,5], n_cpu=None):
+def validation_cca(num_subjects, mask_path, radii=[0,1,2,3], n_cpu=None):
     
     cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
     
       
     cancorrs = []
     max_corrs = []
+    results = dict()
     for rad in radii:
         t_0 = time.time()
-        res = du.run_searchlight(cds, metric='cca_validate', radius=rad, n_cpu=n_cpu)
-        means = res.samples.mean(axis=1)
-        cancorrs.append(means[0])
-        max_corrs.append(means[1])
+        cca_val_res = du.run_searchlight(cds, metric='rcca_validate', radius=rad, n_cpu=n_cpu)
+        corr_val_res = du.run_searchlight(cds, metric='correlation', radius=rad, n_cpu=n_cpu)
+        results["radius_{0}".format(rad)] = cca_val_res        
+
         t_elapsed = time.time() - t_0
         print("Done with radius {0}\nTook {1} seconds".format(rad, t_elapsed))
+        du.plot_colored_isc_vs_isi(corr_val_res, cca_val_res, "Validated CCA versus Correlation: Radius {0}".format(rad))
 
-    plt.clf()
+
+    #plt.clf()
     
-    plt.bar(radii, cancorrs, color='steelblue')
-    plt.xlabel('Searchlight radius (voxels)')
-    plt.ylabel('Average First Canonical Correlation')
-    plt.title('First Canonical Correlation as Searchlight Radius Increases')
-    plt.show()
+    #plt.bar(radii, cancorrs, color='steelblue')
+    #plt.xlabel('Searchlight radius (voxels)')
+   # plt.ylabel('Average First Canonical Correlation')
+    #plt.title('First Canonical Correlation as Searchlight Radius Increases')
+    #plt.show()
     
     
-    plt.bar(radii, max_corrs, color='orangered')
-    plt.xlabel('Searchlight radius (voxels)')
-    plt.ylabel('Average Maximum Prediction Correlation')
-    plt.title('Cross Validation and Prediction Average Maximum Accuracy')
-    plt.show()
+    #plt.bar(radii, max_corrs, color='orangered')
+    #plt.xlabel('Searchlight radius (voxels)')
+    #plt.ylabel('Average Maximum Prediction Correlation')
+    #plt.title('Cross Validation and Prediction Average Maximum Accuracy')
+    #plt.show()
     
-    return (cancorrs, max_corrs)
+    return results
     
     
     

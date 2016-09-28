@@ -4,7 +4,6 @@ from sklearn.cross_decomposition import CCA
 import numpy as np
 from mvpa2.tutorial_suite import Dataset
 import fmri_preprocessing as fp
-from scipy.stats import pearsonr
 from scipy.spatial.distance import pdist
 from fastdtw import fastdtw
 import rcca
@@ -100,11 +99,11 @@ def cca_validate(ds):
     return 1 - np.mean(pdist(predicted, metric='correlation'))
 
 
-# Run pyrcca's validate with an 80/20 split of training testing on samples within subjects    
+# Run pyrcca's validate with a 50/50 split of training testing on samples within subjects    
 def rcca_validate(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
-    split_point = int(num_samples * .80)
+    split_point = int(num_samples * .5)
     
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
     centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
@@ -113,9 +112,9 @@ def rcca_validate(ds):
     test_set = [subj.T[split_point:,:] for subj in centered_ds]
 
     cca.train(train_set)
-    cca.validate(test_set)
+    return np.mean(cca.validate(test_set))
     
-    cancorr = np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
-    predcorr = np.mean(cca.corrs)
-    return np.array([cancorr, predcorr])
+    #cancorr = np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
+    #predcorr = np.mean(cca.corrs)
+    #return np.array([cancorr, predcorr])
     
