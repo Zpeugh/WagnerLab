@@ -1,5 +1,4 @@
 # WagnerLab
----
 This repository contains functions and methods to analyze fMRI subject movie data.  Specifically, the focus is on
 multivariate searchlight driven approaches for intersubject correlations and other measures through time. 
 
