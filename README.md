@@ -11,9 +11,6 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 ##### tests.py
 &nbsp;&nbsp;&nbsp;&nbsp;Various adjustable tests for running on the 2010 dataset
 
-##### masks/
-&nbsp;&nbsp;&nbsp;&nbsp;Directory with NIFTI masks
-
 ##### results/data/
 &nbsp;&nbsp;&nbsp;&nbsp;Pickle files of data small enough to save to GitHub
 ##### results/figures/ 
@@ -40,5 +37,6 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 ##### rcca.py
 &nbsp;&nbsp;&nbsp;&nbsp;This is the source code from [pyrcca](https://github.com/gallantlab/pyrcca/blob/master/rcca.py) 
 
-
+##### masks/
+&nbsp;&nbsp;&nbsp;&nbsp;Directory with NIFTI masks
 
