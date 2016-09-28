@@ -7,16 +7,15 @@ Created on Thu Mar 31 15:03:29 2016
 @description: Module to quickly parallel preprocess the 2010 movie data
 
 """
-import numpy as np
-import matplotlib.pyplot as plt
+
+fp = imp.load_source('fmri_preprocessing', '../fmri/fmri_preprocessing.py')
+du  = imp.load_source('dataset_utilities', '../fmri/dataset_utilities.py')
 from mvpa2.tutorial_suite import *
-import fmri_preprocessing as fp
-import time
 from multiprocessing import Pool
-from multiprocessing import Process
-from multiprocessing import Manager
-import dataset_utilities as du
-import warnings
+import matplotlib.pyplot as plt
+import numpy as np
+import time
+import imp
     
     
 INCORRECT_SR = 2.5112    #The incorrect sample rate for 10 runs (samples/sec)
@@ -80,7 +79,7 @@ def _multiple_get_ds(arg_list):
 
     
 
-def new_get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.nii', degrees=1, num_threads=34,  combine=True, verbose=False):
+def new_get_2010_preprocessed_data(num_subjects=34, mask_path='../fmri/masks/bigmask_3x3x3.nii', degrees=1, num_threads=34,  combine=True, verbose=False):
     
     args_list = []
     processes = []
@@ -144,7 +143,7 @@ def new_get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3
 
 
 def get_2010_scene_splits():
-    SCENE_CHANGE_FILE = "/lab/neurodata/zachs_work/scenes_run{0}.txt"
+    SCENE_CHANGE_FILE = "/lab/neurodata/zachs_work/wagner_2010/scene_changes/scenes_run{0}.txt"
     SEC_PER_MIN = 60
     RUN_BEG_CUTOFF = 38
     SAMPLES_PER_RUN = 211
@@ -194,7 +193,7 @@ def get_2010_scene_splits():
     Returns             the Dataset of num_subj subjects' preprocessed datasets. This
                         has shape (#subjects, #voxels_in_mask, #time_samples).
 ======================================================================================'''
-def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.nii', degrees=1, num_threads=34,  combine=True, verbose=False):
+def get_2010_preprocessed_data(num_subjects=34, mask_path='../fmri/masks/bigmask_3x3x3.nii', degrees=1, num_threads=34,  combine=True, verbose=False):
     
     args_list = []
     pool = Pool(num_threads)    
@@ -266,12 +265,12 @@ def get_2010_preprocessed_data(num_subjects=34, mask_path='masks/bigmask_3x3x3.n
     Returns             the dictionary of num_subj subjects.  Each subject's dataset 
                         can be accessed with ["subject_0"], ["subject_1], etc.
 ======================================================================================'''
-def get_raw_2010_datasets(num_samples=34, mask_path='masks/bigmask_3x3x3.nii', slice_samples=True):
+def get_raw_2010_datasets(num_samples=34, mask_path='../fmri/masks/bigmask_3x3x3.nii', slice_samples=True):
     
     incorrect_sr = 2.5112    #The incorrect sample rate for 9 runs (samples/sec)
     correct_sr = 2.5        #The proper sampling rate in samples/sec
    
-    mask_path = 'masks/bigmask_3x3x3.nii'
+    mask_path = '../fmri/masks/bigmask_3x3x3.nii'
     base_path = '/lab/neurodata/ddw/dartmouth/2010_SP/SUBJECTS/'
     run_path = "/FUNCTIONAL/swuabold{0}.nii"
     param_path = "/FUNCTIONAL/rp_abold{0}.txt"    
