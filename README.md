@@ -4,13 +4,13 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 
 ## Directory Descriptions
 
->### wagner_2010/
+>### fmri/wagner_2010/
 All of the results and scripts applicable to Dr. Dylan Wagner's 2010 study on the movie <em>Matchstick Men</em>
 
 >>##### load_data.py
 >>>This is a convenience file with methods to load in the 2010 data.
 
->>##### tests.py
+>>##### analysis.py
 >>>Various adjustable tests for running on the 2010 dataset
 
 >>##### results/data/
@@ -23,7 +23,7 @@ All of the results and scripts applicable to Dr. Dylan Wagner's 2010 study on th
 >>>NIFTI files of results
 
 -
->### fmri/
+>### fmri/fmri/
 The general utility scripts with methods for pre and post processing fMRI timeseries data
 
 >>##### fmri_preprocessing.py
