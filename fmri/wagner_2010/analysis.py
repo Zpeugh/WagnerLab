@@ -50,7 +50,7 @@ def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
 
 
 
-def validation_cca(num_subjects, mask_path, radii=[0,1,2,3], n_cpu=None):
+def validation_cca(num_subjects, mask_path, radii=[0,1,2], n_cpu=None):
     
     cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
     
@@ -66,7 +66,7 @@ def validation_cca(num_subjects, mask_path, radii=[0,1,2,3], n_cpu=None):
 
         t_elapsed = time.time() - t_0
         print("Done with radius {0}\nTook {1} seconds".format(rad, t_elapsed))
-        du.plot_colored_isc_vs_isi(corr_val_res, cca_val_res, "Validated CCA versus Correlation: Radius {0}".format(rad))
+        du.plot_colored_isc_vs_isi(corr_val_res, cca_val_res, "Validated CCA vs. Max Correlation: Radius {0}".format(rad))
 
 
     #plt.clf()

@@ -278,6 +278,8 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
         measure = cca_validate
     elif metric == 'rcca_validate':
         measure = rcca_validate
+    elif metric == 'rcca_validate_max':
+        measure = rcca_validate_max
     elif metric == 'correlation':
         measure = pearsons_average
     elif metric == 'all_pearsons':

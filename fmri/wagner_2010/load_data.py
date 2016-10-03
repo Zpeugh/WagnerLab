@@ -8,14 +8,14 @@ Created on Thu Mar 31 15:03:29 2016
 
 """
 
-fp = imp.load_source('fmri_preprocessing', '../fmri/fmri_preprocessing.py')
-du  = imp.load_source('dataset_utilities', '../fmri/dataset_utilities.py')
+import fmri_preprocessing as fp
+import dataset_utilities as du
 from mvpa2.tutorial_suite import *
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-import imp
+
     
     
 INCORRECT_SR = 2.5112    #The incorrect sample rate for 10 runs (samples/sec)
