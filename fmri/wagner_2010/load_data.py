@@ -79,12 +79,12 @@ def _multiple_get_ds(arg_list):
 
     
 
-def new_get_2010_preprocessed_data(num_subjects=34, mask_path='../fmri/masks/bigmask_3x3x3.nii', degrees=1, num_threads=34,  combine=True, verbose=False):
+def new_get_2010_preprocessed_data(num_subjects=34, mask_path='../fmri/masks/bigmask_3x3x3.nii', degrees=1, n_cpu=34,  combine=True, verbose=False):
     
     args_list = []
     processes = []
     results = []
-    pool = Pool(num_threads)    
+    pool = Pool(n_cpu)    
     
     t_0 = time.time()
     
@@ -183,7 +183,7 @@ def get_2010_scene_splits():
                         of the samples. Default is bigmask_3x3x3.nii
     degrees             (optional) The number of polynomial degrees to use when
                         detrending the dataset
-    num_threads         The number of different threads to create, will default to 34
+    n_cpu         The number of different threads to create, will default to 34
                         which assumes all subjects are being run in parellel.                     
     combine             (optional) Whether or not to return a single Dataset of all
                         subjects combined (True, default) or a list containing 
@@ -193,10 +193,10 @@ def get_2010_scene_splits():
     Returns             the Dataset of num_subj subjects' preprocessed datasets. This
                         has shape (#subjects, #voxels_in_mask, #time_samples).
 ======================================================================================'''
-def get_2010_preprocessed_data(num_subjects=34, mask_path='../fmri/masks/bigmask_3x3x3.nii', degrees=1, num_threads=34,  combine=True, verbose=False):
+def get_2010_preprocessed_data(num_subjects=34, mask_path='../fmri/masks/bigmask_3x3x3.nii', degrees=1, n_cpu=34,  combine=True, verbose=False):
     
     args_list = []
-    pool = Pool(num_threads)    
+    pool = Pool(n_cpu)    
     
     t_0 = time.time()
     

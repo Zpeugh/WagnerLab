@@ -113,10 +113,7 @@ def rcca_validate(ds):
 
     cca.train(train_set)
     return np.mean(cca.validate(test_set))
-    
-    #cancorr = np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
-    #predcorr = np.mean(cca.corrs)
-    #return np.array([cancorr, predcorr])
+
 
 def rcca_validate_max(ds):
     num_subj = ds.shape[0]
@@ -130,4 +127,19 @@ def rcca_validate_max(ds):
     test_set = [subj.T[split_point:,:] for subj in centered_ds]
 
     cca.train(train_set)
-    return np.max(cca.validate(test_set))
+  
+    return np.max(np.mean(cca.validate(test_set), axis=0))
+    
+    
+    
+    
+    
+    
+    
+    
+       
+    
+    
+    
+    
+    

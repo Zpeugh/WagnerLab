@@ -77,7 +77,7 @@ def plot_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
 
     voxel_position      a number representing which voxel in the dataset to display
 ======================================================================================'''  
-def plot_colored_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
+def plot_colored_isc_vs_isi(isc_data, isi_data, title, xlabel='Intersubject Correlation', ylabel='Intersubject Information', save=False, filename=None):
    
     voxels = isc_data.fa.voxel_indices    
     
@@ -109,8 +109,8 @@ def plot_colored_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None
                 labels=["Back 1/3rd", "Middle 1/3rd", "Front 1/3rd"], 
                 bbox_to_anchor=(0.66,0.125), loc='lower left' )
     plt.title(title, fontsize=15)
-    plt.xlabel('Intersubject Correlation',fontsize=15)
-    plt.ylabel('Intersubject Information', fontsize=15)
+    plt.xlabel(xlabel,fontsize=15)
+    plt.ylabel(ylabel, fontsize=15)
     
     if save:
         fig.savefig(filename)

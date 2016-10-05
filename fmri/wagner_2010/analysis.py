@@ -30,7 +30,7 @@ import numpy as np
 def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
     
     # Get the datasets
-    cds = ld.get_2010_preprocessed_data(num_subjects=subjects, mask_path=mask_path, num_threads=n_cpu)
+    cds = ld.get_2010_preprocessed_data(num_subjects=subjects, mask_path=mask_path, n_cpu=n_cpu)
     # Run CCA and save results to pickle and nifti file
     cca_res = du.run_searchlight(cds, n_cpu=n_cpu, radius=radius, metric='cca')
     f = open('results/data/{0}_cca_{1}_{2}.pckl'.format(brain_region, subjects, radius), 'wb')
@@ -48,45 +48,7 @@ def run_cca_and_isc(radius, n_cpu, subjects, brain_region, mask_path):
     # Plot the colored and ISC vs ISI plot
     du.plot_colored_isc_vs_isi(corr_res, cca_res, voxels=corr_res.fa.voxel_indices, title='{0} {1} Subject ISI vs ISC: Searchlight Radius {2}'.format(brain_region, subjects, radius), save=True, filename='results/figures/{0}_{1}_{2}'.format(brain_region, subjects, radius))    
 
-
-
-def validation_cca(num_subjects, mask_path, radii=[0,1,2], n_cpu=None):
-    
-    cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
-    
-      
-    cancorrs = []
-    max_corrs = []
-    results = dict()
-    for rad in radii:
-        t_0 = time.time()
-        cca_val_res = du.run_searchlight(cds, metric='rcca_validate', radius=rad, n_cpu=n_cpu)
-        corr_val_res = du.run_searchlight(cds, metric='correlation', radius=rad, n_cpu=n_cpu)
-        results["radius_{0}".format(rad)] = cca_val_res        
-
-        t_elapsed = time.time() - t_0
-        print("Done with radius {0}\nTook {1} seconds".format(rad, t_elapsed))
-        du.plot_colored_isc_vs_isi(corr_val_res, cca_val_res, "Validated CCA vs. Max Correlation: Radius {0}".format(rad))
-
-
-    #plt.clf()
-    
-    #plt.bar(radii, cancorrs, color='steelblue')
-    #plt.xlabel('Searchlight radius (voxels)')
-   # plt.ylabel('Average First Canonical Correlation')
-    #plt.title('First Canonical Correlation as Searchlight Radius Increases')
-    #plt.show()
-    
-    
-    #plt.bar(radii, max_corrs, color='orangered')
-    #plt.xlabel('Searchlight radius (voxels)')
-    #plt.ylabel('Average Maximum Prediction Correlation')
-    #plt.title('Cross Validation and Prediction Average Maximum Accuracy')
-    #plt.show()
-    
-    return results
-    
-    
+   
     
 
 def pvalues(num_subjects=34, radius=3, mask_path='masks/bigmask_3x3x3.nii', n_cpu=50):
@@ -213,10 +175,32 @@ def plot_feature_vs_result(cds, means, feature, title, method='multiply'):
 def plot_activation_vs_scene_change(mask_path, window=5, a=0.01, n_cpu=20):
 
     scenes = ld.get_2010_scene_splits()
-    cds = ld.get_2010_preprocessed_data(mask_path=mask_path, num_threads=n_cpu)
+    cds = ld.get_2010_preprocessed_data(mask_path=mask_path, n_cpu=n_cpu)
     res = du.run_searchlight(cds, metric="tvalues", n_cpu=n_cpu)
     du.plot_activation_with_scenes(res, scenes, window=window, a=a, n=cds.shape[0])
 
+    
+    
+def validation_cca(num_subjects, mask_path, radii=[0,1,2], n_cpu=None):
+    
+    cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
+    
+      
+    cancorrs = []
+    max_corrs = []
+    results = dict()
+    for rad in radii:
+        t_0 = time.time()
+        cca_val_res = du.run_searchlight(cds, metric='rcca_validate_max', radius=rad, n_cpu=n_cpu)
+        cca_res = du.run_searchlight(cds, metric='cca', radius=rad, n_cpu=n_cpu)
+        results["radius_{0}".format(rad)] = cca_val_res        
+
+        t_elapsed = time.time() - t_0
+        print("Done with radius {0}\nTook {1} seconds".format(rad, t_elapsed))
+        du.plot_colored_isc_vs_isi(cca_res, cca_val_res, "Validated CCA vs. Max Correlation: Radius {0}".format(rad), xlabel="CCA correlation", ylabel="CCA Validation Predicted Correlation")
+
+
+    return results    
     
 ## Making masks
 ## open fslview
