@@ -116,6 +116,56 @@ def plot_colored_isc_vs_isi(isc_data, isi_data, title, xlabel='Intersubject Corr
         fig.savefig(filename)
     plt.show()
  
+ 
+ 
+def plot_thresholded_isc_vs_isi(isc_data, isi_data, title, isc_p_thresh, isi_p_thresh, 
+                                xlabel='Intersubject Correlation', ylabel='Intersubject Information', 
+                                save=False, filename=None):
+   
+    voxels = isc_data.fa.voxel_indices    
+    
+    iscd = isc_data.samples[0,:]
+    isid = isi_data.samples[0,:]
+    
+    blue_x =  [x for i, x in enumerate(iscd) if x >= isc_p_thresh and isid[i] < isi_p_thresh]
+    blue_y =  [x for i, x in enumerate(isid) if x < isi_p_thresh and iscd[i] >= isc_p_thresh]
+    green_x = [x for i, x in enumerate(iscd) if x < isc_p_thresh and isid[i] >= isi_p_thresh] 
+    green_y = [x for i, x in enumerate(isid) if x >= isi_p_thresh and iscd[i] < isc_p_thresh] 
+    red_x =   [x for i, x in enumerate(iscd) if x >= isc_p_thresh and isid[i] >= isi_p_thresh]
+    red_y =   [x for i, x in enumerate(isid) if x >= isi_p_thresh and iscd[i] >= isc_p_thresh]
+    black_x = [x for i, x in enumerate(iscd) if x < isc_p_thresh and isid[i] < isi_p_thresh]
+    black_y = [x for i, x in enumerate(isid) if x < isi_p_thresh and iscd[i] < isc_p_thresh]
+    
+    color_array = ['steelblue' for i in range(len(blue_x))]
+    color_array += ['seagreen' for i in range(len(green_x))]
+    color_array += ['darkred' for i in range(len(red_x))] 
+    color_array += ['black' for i in range(len(black_x))]       
+       
+    X = blue_x + green_x + red_x + black_x
+    Y = blue_y + green_y + red_y + black_y
+
+
+    plt.clf()
+    fig = plt.figure(figsize=(10,6))
+    blue_marker = mpatches.Patch(color='steelblue', label="ISC only")
+    green_marker = mpatches.Patch(color='seagreen', label="ISI only")    
+    red_marker = mpatches.Patch(color='darkred', label="Both")
+    black_marker = mpatches.Patch(color='black', label="Neither")
+    
+    plt.scatter(X,Y, marker = '.', color=color_array)
+    plt.axvline(isc_p_thresh, color="black", linewidth=2)
+    plt.axhline(isi_p_thresh, color="black", linewidth=2)
+    fig.legend( handles=[blue_marker, green_marker, red_marker, black_marker], 
+                labels=["ISC only", "ISI only", "Both", "Neither"], 
+                bbox_to_anchor=(0.66,0.125), loc='lower left' )
+    plt.title(title, fontsize=15)
+    plt.xlabel(xlabel,fontsize=15)
+    plt.ylabel(ylabel, fontsize=15)
+    
+    if save:
+        fig.savefig(filename)
+    plt.show() 
+ 
 
 '''====================================================================================
     Plot the timeseries of number of voxels activated above a significance threshold.
@@ -272,6 +322,8 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
         measure = cca_uncentered
     elif metric == 'cca':
         measure = cca
+    elif metric == '1_to_many_cca':
+        measure = cca_one_to_all
     elif metric == 'all_cca':
         measure = all_cca
     elif metric == 'cca_validate':
@@ -458,17 +510,31 @@ def find_common_activation_zones_at_scene_change(cds, scenes, padding=2):
     return differences, ds
     
     
+# rolls data a random number of permutations on the longest axis 
+def shift_subject(ds):
     
+    num_samples = 1
+    min_perm = 1
     
+    if ds.shape[0] < ds.shape[1]:
+        num_samples = ds.shape[1]
+        axis = 1
+    else:
+        num_samples = ds.shape[0]
+        axis = 0
+        
+    if num_samples > 10:
+        min_perm = 10
     
+    rand_perm = np.random.randint(min_perm, num_samples-min_perm)
     
+    return np.roll(ds, rand_perm, axis=axis)
     
-    
-    
-    
-    
-    
-    
-    
-    
-
+def randomize_subject(ds):
+    ds_copy = ds.copy()
+    total_samples = ds.shape[0] * ds.shape[1]
+    ds_copy = ds_copy.reshape(total_samples)
+    np.random.shuffle(ds_copy)
+    return ds_copy.reshape((ds.shape[0], ds.shape[1]))
+        
+  

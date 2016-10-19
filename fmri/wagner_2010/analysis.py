@@ -14,6 +14,12 @@ import time
 import timeit
 from mvpa2.suite import Dataset
 import numpy as np
+import scipy.stats as stats
+
+PEARSON_RADIUS_2_P_THRESH = 0.1526
+CCA_RADIUS_2_P_THRESH = 0.384783972034
+
+
 
 '''=======================================================================================
     Run intersubject correlation (Pearson's r) and intersubject information 
@@ -168,7 +174,7 @@ def plot_feature_vs_result(cds, means, feature, title, method='multiply'):
     plt.xlabel(feature)   
     plt.ylabel('Correlation')
     plt.title(title)
-    plt.show
+    plt.show()
     
     print("Correlation: {0}".format(np.corrcoef(X, means)[0,1]))
 
@@ -180,6 +186,8 @@ def plot_activation_vs_scene_change(mask_path, window=5, a=0.01, n_cpu=20):
     du.plot_activation_with_scenes(res, scenes, window=window, a=a, n=cds.shape[0])
 
     
+    
+        
     
 def validation_cca(num_subjects, mask_path, radii=[0,1,2], n_cpu=None):
     
@@ -202,6 +210,98 @@ def validation_cca(num_subjects, mask_path, radii=[0,1,2], n_cpu=None):
 
     return results    
     
+def pick_random_pair_shift_one(cds):
+    num_subj = cds.shape[0]
+
+    s1 = np.random.randint(0,num_subj)
+    s2 = s1    
+    while s1==s2:
+        s2 = np.random.randint(0,num_subj)
+        
+    subj1 = cds.samples[s1,:,:]
+    
+    samples = np.zeros((2, cds.shape[1], cds.shape[2]))
+    samples[0,:,:] = subj1
+    #samples[1,:,:] = du.randomize_subject(cds.samples[s2,:,:])
+    samples[1,:,:] = du.shift_subject(cds.samples[s2,:,:])
+    ds = Dataset(samples) 
+    ds.a = cds.a
+    ds.fa = cds.fa
+    
+    return ds
+    
+    
+def random_shift_all_but_n(cds, n):
+    num_subj = cds.shape[0]  
+    print("shifting all but subject:", n)
+    ds = cds.copy()
+    temp = cds.samples[0,:,:]
+    ds.samples[0, :, :] = cds.samples[n,:,:]
+    ds.samples[n,:,:] = temp
+    for i in range(1,num_subj):
+        ds.samples[i,:,:] = du.shift_subject(cds.samples[i,:,:])
+            
+    return ds    
+    
+def create_null_p_mapping(cds, n=10, radius=2, alpha = 0.05, n_cpu=10):
+    
+    results = dict() 
+    results["cca"] = []
+    results["pearson"] = []   
+    
+    for i in range(1,n):
+        ds = random_shift_all_but_n(cds, i % cds.shape[0])
+        cca_res = du.run_searchlight(ds, metric="1_to_many_cca", radius=radius, n_cpu=n_cpu)
+        #corr_res = du.run_searchlight(ds, metric="correlation", radius=radius, n_cpu=n_cpu)
+        results["cca"].append(np.mean(cca_res.samples))
+        #results["pearson"].append(np.mean(corr_res.samples))
+        if (i % 2 == 0):
+            #corr_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["pearson"]), scale=np.std(results["pearson"]))[1]
+            cca_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["cca"]), scale=np.std(results["cca"]))[1]
+            print("\n{0} Iterations done\n".format(i))
+            print("CCA Mean is currently {0}\nP thresh is: {1}". format(np.mean(results["cca"]),cca_p_thresh))
+            
+            plt.clf()
+            plt.hist(results["cca"], bins=50)
+            plt.axvline(cca_p_thresh, color='r', linestyle='--')    
+            plt.xlabel("First Canonical Correlation")   
+            plt.ylabel('Frequency')
+            plt.title("Null distribution for Canonical Correlation Analysis: Radius {0}".format(radius))
+            plt.show()
+            #print("Correlation Mean is currently {0}\nP thresh is: {1}". format(np.mean(results["pearson"]),corr_p_thresh))
+        if (i % 100 == 0):
+            #corr_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["pearson"]), scale=np.std(results["pearson"]))[1]
+            cca_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["cca"]), scale=np.std(results["cca"]))[1]
+        
+            #plt.clf()
+            #plt.hist(results["pearson"], bins=50)
+            #plt.axvline(corr_p_thresh, color='r', linestyle='--')    
+            #plt.xlabel("Pearson's Correlation")   
+            #plt.ylabel('Frequency')
+            #plt.title("Null distribution for Pearson's Correlation: Radius {0}".format(radius))
+            #plt.show()
+            
+            plt.clf()
+            plt.hist(results["cca"], bins=50)
+            plt.axvline(cca_p_thresh, color='r', linestyle='--')    
+            plt.xlabel("First Canonical Correlation")   
+            plt.ylabel('Frequency')
+            plt.title("Null distribution for Canonical Correlation Analysis: Radius {0}".format(radius))
+            plt.show()
+
+    return results
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
 ## Making masks
 ## open fslview
 ## save a mask

@@ -43,16 +43,36 @@ def cca(ds):
     num_subj = ds.shape[0]
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
     centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
-    cca.train([subj.T for subj in centered_ds]) 
-    return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
-  
-  
+    cca.train([subj.T for subj in centered_ds])
+    if (num_subj == 2):
+        return cca.cancorrs[0]
+    else:
+        return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
+
+# The first subject in the dataset is the one which will be compared to all other subjects
+def cca_one_to_all(ds):
+    num_subj = ds.shape[0]
+    cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
+    centered_ds = ds.samples - np.mean(np.mean(ds.samples, axis=1), axis=0)
+    cca.train([subj.T for subj in centered_ds])
+    if (num_subj == 2):
+        return cca.cancorrs[0]
+    else:
+        return np.mean(cca.cancorrs[0][0][1:])
+        
+    
+    
+    
+    
 # Returns the average first canonical correlation, without mean centering at each time point    
 def cca_uncentered(ds):
     num_subj = ds.shape[0]
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
     cca.train([subj.T for subj in ds.samples]) 
-    return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
+    if (num_subj == 2):
+        return cca.cancorrs[0]
+    else:    
+        return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
     
     
 # Returns the p values for a null hypothesis of mean=0 and alternative being mean>0.
