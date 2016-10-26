@@ -338,15 +338,15 @@ def thresholded_isc_v_isi_analysis(cds, n=10, radius=2, alpha = 0.05, n_cpu=10):
     
     
     
-    
+'''
+    Method to use an SVM to classify time segments between subjects. 
+'''    
 def between_subject_time_point_classification(ds_list=None, window=6, mask_path="../masks/aal_l_fusiform_3x3x3.nii", n_cpu=20, num_subjects=5):  
     
     if ds_list == None:
         ds_list = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu, combine=False)
     
-    padded_ds_list = []
-    chunks_array = []
-    
+
     num_subjects = len(ds_list)
     num_samples = ds_list[0].shape[0]
     num_voxels = ds_list[0].shape[1]
