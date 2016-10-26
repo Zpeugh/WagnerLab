@@ -12,7 +12,7 @@ import pickle
 import matplotlib.pyplot as plt
 import time
 import timeit
-from mvpa2.suite import Dataset
+from mvpa2.suite import *
 import numpy as np
 import scipy.stats as stats
 
@@ -249,7 +249,7 @@ def create_null_p_mapping(cds, n=10, radius=2, alpha = 0.05, n_cpu=10):
     results["cca"] = []
     results["pearson"] = []   
     
-    for i in range(1,n):
+    for i in range(0,n):
         ds = random_shift_all_but_n(cds, i % cds.shape[0])
         cca_res = du.run_searchlight(ds, metric="1_to_many_cca", radius=radius, n_cpu=n_cpu)
         #corr_res = du.run_searchlight(ds, metric="correlation", radius=radius, n_cpu=n_cpu)
@@ -291,15 +291,86 @@ def create_null_p_mapping(cds, n=10, radius=2, alpha = 0.05, n_cpu=10):
 
     return results
     
+def thresholded_isc_v_isi_analysis(cds, n=10, radius=2, alpha = 0.05, n_cpu=10):
+    
+    results = dict() 
+    results["cca"] = []
+    results["pearson"] = [] 
+    corr_p_thresh = 0
+    cca_p_thresh = 0
+    
+    for i in range(0,n):
+        ds = random_shift_all_but_n(cds, i % cds.shape[0])
+        cca_res = du.run_searchlight(ds, metric="1_to_many_cca", radius=radius, n_cpu=n_cpu)
+        corr_res = du.run_searchlight(ds, metric="correlation", radius=radius, n_cpu=n_cpu)
+        results["cca"].append(np.mean(cca_res.samples))
+        results["pearson"].append(np.mean(corr_res.samples))
+        
+        corr_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["pearson"]), scale=np.std(results["pearson"]))[1]
+        cca_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["cca"]), scale=np.std(results["cca"]))[1]
+        print("\n{0} Iterations done\n".format(i))
+        print("CCA Mean is currently {0}\nP thresh is: {1}". format(np.mean(results["cca"]),cca_p_thresh))
+        print("Correlation Mean is currently {0}\nP thresh is{1}".format(np.mean(results["pearson"]),corr_p_thresh))
+        plt.clf()
+        plt.hist(results["cca"], bins=50)
+        plt.axvline(cca_p_thresh, color='r', linestyle='--')    
+        plt.xlabel("First Canonical Correlation")   
+        plt.ylabel('Frequency')
+        plt.title("Null distribution for Canonical Correlation Analysis: Radius {0}".format(radius))
+        plt.show()
+       
+        plt.clf()
+        plt.hist(results["pearson"], bins=50)
+        plt.axvline(corr_p_thresh, color='r', linestyle='--')    
+        plt.xlabel("Pearson's Correlation")   
+        plt.ylabel('Frequency')
+        plt.title("Null distribution for Pearson's Correlation: Radius {0}".format(radius))
+        plt.show()
+            
+                      
+    cca_res = du.run_searchlight(cds, metric="cca", radius=radius, n_cpu=n_cpu)
+    corr_res = du.run_searchlight(cds, metric="correlation", radius=radius, n_cpu=n_cpu)
+    plot_title = "ISI v. ISC: Radius {0} Thresholded For {1}% False Discovery Rate".format(radius, int(alpha * 100))
+    du.plot_thresholded_isc_vs_isi(corr_res, cca_res, plot_title, corr_p_thresh,
+                                   cca_p_thresh, save=True, 
+                                   filename="results/figures/isc_vs_isi/thresholded_r_{0}_a_{1}.png".format(radius, int(alpha * 100)))
+    return results   
     
     
     
     
+def between_subject_time_point_classification(ds_list=None, window=6, mask_path="../masks/aal_l_fusiform_3x3x3.nii", n_cpu=20, num_subjects=5):  
     
+    if ds_list == None:
+        ds_list = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu, combine=False)
     
+    padded_ds_list = []
+    chunks_array = []
     
+    num_subjects = len(ds_list)
+    num_samples = ds_list[0].shape[0]
+    num_voxels = ds_list[0].shape[1]
     
+    ds_tup = ()
     
+    for ds in ds_list:
+       
+        ds_tup = ds_tup + ( np.repeat(ds, window, axis=0), )
+        #events = find_events(targets=padded_ds.sa.targets, chunks=padded_ds.sa.chunks)
+            
+    cds = Dataset(np.concatenate(ds_tup))      
+    cds.sa['subjects'] = np.repeat(np.arange(num_subjects), window * num_samples)
+    chunked_targets = np.repeat(np.arange(num_samples), window) 
+    cds.sa['targets'] = np.tile(chunked_targets, num_subjects)
+    cds.sa['chunks'] = np.repeat(np.arange(num_subjects*num_samples), window)
+
+    clf = LinearCSVMC()
+       
+    cv = CrossValidation(clf, NFoldPartitioner(attr='subjects'))
+    cv_results = cv(cds)
+    print("Mean Error: ", np.mean(cv_results))
+    return cds, cv_results
+
     
 
 ## Making masks
