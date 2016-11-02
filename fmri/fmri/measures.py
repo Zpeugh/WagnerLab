@@ -151,13 +151,60 @@ def rcca_validate_max(ds):
     return np.max(np.mean(cca.validate(test_set), axis=0))
     
     
+def timepoint_isc(ds):
+    
+    self_correlations = []
+    
+    for subj in ds.samples:
+        corrs = 1 - pdist(subj.T, metric='correlation')
+        self_correlations.append(corrs)
+        
+    correlation = 1 - pdist(self_correlations, metric="correlation")
+    
+    return np.mean(correlation)
     
     
+
+# Dataset must have ds.a["scene_changes"] Dataset attribute set as an array of integers!       
+def scene_based_isc(ds):
     
+    num_subj = ds.shape[0]
+    num_voxels = ds.shape[1]
+    num_scenes = len(ds.a.scene_changes)
+    ds_list = np.zeros((num_subj, num_voxels, num_scenes))
+    prev_cutoff = 0
+
+    # average correlations for each scene
+    for i, scene_cutoff in enumerate(ds.a.scene_changes):
+        ds_list[:,:,i] = np.mean(ds.samples[:,:,prev_cutoff:scene_cutoff], axis=2)
+        prev_cutoff = scene_cutoff
+
+    self_correlations = []
+
+    # convert each subject to a vector of its pairwise correlations between scenes
+    for subj in ds_list:
+        corrs = 1 - pdist(subj.T, metric='correlation')
+        self_correlations.append(corrs)
     
-    
-    
-       
+    # get all pairwise correlations between subjects    
+    correlation = 1 - pdist(self_correlations, metric="correlation")
+
+    # return the average isc scene based correlation
+    return np.mean(correlation)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     
     

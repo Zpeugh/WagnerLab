@@ -364,7 +364,7 @@ def between_subject_time_point_classification(ds_list=None, window=6, mask_path=
     cds.sa['targets'] = np.tile(chunked_targets, num_subjects)
     cds.sa['chunks'] = np.repeat(np.arange(num_subjects*num_samples), window)
 
-    clf = LinearCSVMC()
+    clf = SVM()
        
     cv = CrossValidation(clf, NFoldPartitioner(attr='subjects'))
     cv_results = cv(cds)
@@ -372,6 +372,28 @@ def between_subject_time_point_classification(ds_list=None, window=6, mask_path=
     return cds, cv_results
 
     
+
+def scene_double_correlation(mask_path="../masks/bigmask_3x3x3.nii", file_prefix="full_brain", 
+                             n_cpu=40, num_subjects=34, radii = [2,3,4,5]):
+    
+    cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu)
+    
+    cds.a["scene_changes"] = ld.get_2010_scene_splits(as_ints=True)
+    results = []
+    
+    for radius in radii:
+        res = du.run_searchlight(cds, metric="scene_based_isc", radius=radius, n_cpu=n_cpu)
+        du.export_to_nifti(res, "results/nifti/scene_splits/{0}_s{1}_r{2}".format(file_prefix, num_subjects, radius))
+        results.append(res)
+        
+    return results
+    
+    
+    
+    #[0.043393577399359916,
+ #0.067334589330481018,
+ #.095296031312744486,
+ ##0.13513582180415568]
 
 ## Making masks
 ## open fslview

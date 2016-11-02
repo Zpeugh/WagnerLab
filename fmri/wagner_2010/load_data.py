@@ -142,8 +142,8 @@ def new_get_2010_preprocessed_data(num_subjects=34, mask_path='../fmri/masks/big
         return results        
 
 
-def get_2010_scene_splits():
-    SCENE_CHANGE_FILE = "/lab/neurodata/zachs_work/wagner_2010/scene_changes/scenes_run{0}.txt"
+def get_2010_scene_splits(as_ints=False):
+    SCENE_CHANGE_FILE = "/lab/neurodata/zachs_work/fmri/wagner_2010/scene_changes/scenes_run{0}.txt"
     SEC_PER_MIN = 60
     RUN_BEG_CUTOFF = 38
     SAMPLES_PER_RUN = 211
@@ -166,7 +166,11 @@ def get_2010_scene_splits():
                 total_time = total_seconds / float(2.5)
                 
                 if (total_time > RUN_BEG_CUTOFF and total_time < RUN_END_CUTOFF):
-                    scene_change_times.append(total_time + offset - RUN_BEG_CUTOFF)
+                    if as_ints:
+                        t = int(round(total_time + offset - RUN_BEG_CUTOFF))
+                    else:
+                        t = total_time + offset - RUN_BEG_CUTOFF
+                    scene_change_times.append(t)
     return scene_change_times
             
                 

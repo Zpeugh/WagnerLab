@@ -340,6 +340,10 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
         measure = pvalues
     elif metric == 'tvalues':
         measure = tvalues
+    elif metric == "timepoint_isc":
+        measure = timepoint_isc
+    elif metric == "scene_based_isc":
+        measure = scene_based_isc
     else:
         print("Invalid metric, using Pearson's Correlation by default.")
         measure = pearsons_average
