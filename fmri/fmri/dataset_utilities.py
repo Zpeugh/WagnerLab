@@ -344,6 +344,10 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
         measure = timepoint_isc
     elif metric == "scene_based_isc":
         measure = scene_based_isc
+    elif metric == "scene_svm_cv":
+        measure = scene_svm_cross_validation
+    elif metric =="scene_svm_cv_cm":
+        measure = scene_svm_cross_validation_confusion_matrix
     else:
         print("Invalid metric, using Pearson's Correlation by default.")
         measure = pearsons_average
@@ -540,5 +544,32 @@ def randomize_subject(ds):
     ds_copy = ds_copy.reshape(total_samples)
     np.random.shuffle(ds_copy)
     return ds_copy.reshape((ds.shape[0], ds.shape[1]))
+    
+# Takes a dataset with confusion matrices at each voxel in the brain and computes either
+# the average accuracy accross all labels, or the accuracy for each label returning either
+# a scalar or a vector depending on the parameter "average"    
+def confusion_matrix_accuracies(ds, average=False):
+    
+    result = []
+    for mat in ds:
+        result.append(np.true_divide(mat.diagonal(), mat.sum(axis=0)))
+    
+    if average:
+        return result.mean(axis=1)
+    else:    
+        return result
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
         
   

@@ -31,7 +31,38 @@ SUBJECTS = ['0ctr_14oct09ft', '0ctr_14oct09gl', '0ctr_14oct09js', '0ctr_18apr09y
 '0smk_17apr09ag', '0smk_22apr09cc', '0smk_25feb08rl', '0smk_25feb08rz',
 '0smk_27feb08mi', '0smk_28sep09cb', '0smk_30may08sm', '0smk_31jul07sc_36slices']
 
-#SUBJECTS = ['0smk_02apr08jb']
+
+def get_2010_scene_splits(as_ints=False):
+    SCENE_CHANGE_FILE = "/lab/neurodata/zachs_work/fmri/wagner_2010/scene_changes/scenes_run{0}.txt"
+    SEC_PER_MIN = 60
+    RUN_BEG_CUTOFF = 38
+    SAMPLES_PER_RUN = 211
+    RUN_END_CUTOFF = 288-39
+    
+    scene_change_times = []
+    
+    for run in range(1,4):
+        offset = (run-1) * SAMPLES_PER_RUN
+        with open(SCENE_CHANGE_FILE.format(run), 'r') as f:
+            for line in f:
+                line = line.strip()
+                times = line.split(':')
+                
+                
+                minutes = int(times[0])
+                seconds = float(times[1])
+                    
+                total_seconds = minutes * SEC_PER_MIN + seconds
+                total_time = total_seconds / float(2.5)
+                
+                if (total_time > RUN_BEG_CUTOFF and total_time < RUN_END_CUTOFF):
+                    if as_ints:
+                        t = int(round(total_time + offset - RUN_BEG_CUTOFF))
+                    else:
+                        t = total_time + offset - RUN_BEG_CUTOFF
+                    scene_change_times.append(t)
+    return scene_change_times
+
 
 
 def _subject_needs_resampled(subject):
@@ -113,6 +144,8 @@ def new_get_2010_preprocessed_data(num_subjects=34, mask_path='../fmri/masks/big
             print("combining datasets")
         t_0 = time.time()
         cds = du.combine_datasets(results)
+        cds.a["scene_changes"] = get_2010_scene_splits(as_ints=True)
+        print(get_2010_scene_splits(as_ints=True))
         t_elapsed = time.time() - t_0
         if verbose:
             print("combining datasets took {0} seconds".format(t_elapsed))
@@ -142,37 +175,7 @@ def new_get_2010_preprocessed_data(num_subjects=34, mask_path='../fmri/masks/big
         return results        
 
 
-def get_2010_scene_splits(as_ints=False):
-    SCENE_CHANGE_FILE = "/lab/neurodata/zachs_work/fmri/wagner_2010/scene_changes/scenes_run{0}.txt"
-    SEC_PER_MIN = 60
-    RUN_BEG_CUTOFF = 38
-    SAMPLES_PER_RUN = 211
-    RUN_END_CUTOFF = 288-39
-    
-    scene_change_times = []
-    
-    for run in range(1,4):
-        offset = (run-1) * SAMPLES_PER_RUN
-        with open(SCENE_CHANGE_FILE.format(run), 'r') as f:
-            for line in f:
-                line = line.strip()
-                times = line.split(':')
-                
-                
-                minutes = int(times[0])
-                seconds = float(times[1])
-                    
-                total_seconds = minutes * SEC_PER_MIN + seconds
-                total_time = total_seconds / float(2.5)
-                
-                if (total_time > RUN_BEG_CUTOFF and total_time < RUN_END_CUTOFF):
-                    if as_ints:
-                        t = int(round(total_time + offset - RUN_BEG_CUTOFF))
-                    else:
-                        t = total_time + offset - RUN_BEG_CUTOFF
-                    scene_change_times.append(t)
-    return scene_change_times
-            
+           
                 
             
             

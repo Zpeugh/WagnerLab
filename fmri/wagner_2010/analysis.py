@@ -15,6 +15,7 @@ import timeit
 from mvpa2.suite import *
 import numpy as np
 import scipy.stats as stats
+import os
 
 PEARSON_RADIUS_2_P_THRESH = 0.1526
 CCA_RADIUS_2_P_THRESH = 0.384783972034
@@ -371,6 +372,46 @@ def between_subject_time_point_classification(ds_list=None, window=6, mask_path=
     print("Mean Error: ", np.mean(cv_results))
     return cds, cv_results
 
+
+
+def scene_svm_cross_validation(cds=None, mask_path="../masks/aal_l_hippocampus_3x3x3.nii", n_cpu=20, num_subjects=5):  
+    
+    if cds == None:
+        cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu)
+    
+
+    cds.a["scene_changes"] = ld.get_2010_scene_splits(as_ints=True)
+    num_subj = cds.shape[0]
+    num_voxels = cds.shape[1]
+    num_scenes = len(cds.a.scene_changes)
+    ds_list = np.zeros((num_subj, num_voxels, num_scenes))
+    prev_cutoff = 0
+    ds_tup = ()
+    
+    # average correlations for each scene
+    for i, scene_cutoff in enumerate(cds.a.scene_changes):
+        ds_list[:,:,i] = np.mean(cds.samples[:,:,prev_cutoff:scene_cutoff], axis=2)
+        prev_cutoff = scene_cutoff
+       
+    for subj in ds_list:
+        ds_tup = ds_tup + (subj.T, )
+        
+        
+    ds = Dataset(np.concatenate(ds_tup))  
+    print(ds.shape)
+    ds.sa['subjects'] = np.repeat(np.arange(num_subj), num_scenes)
+    ds.sa['targets'] = np.tile(np.arange(num_scenes), num_subj)
+    ds.sa['chunks'] = np.tile(np.arange(num_scenes), num_subj)
+
+    clf = SVM()
+       
+    cv = CrossValidation(clf, NFoldPartitioner(attr='subjects'))
+    cv_results = cv(ds)
+    print("Mean Accuracy: ", 1 - np.mean(cv_results))
+    return cds, cv_results
+
+    
+
     
 
 def scene_double_correlation(mask_path="../masks/bigmask_3x3x3.nii", file_prefix="full_brain", 
@@ -389,12 +430,48 @@ def scene_double_correlation(mask_path="../masks/bigmask_3x3x3.nii", file_prefix
     return results
     
     
+def export_scenes_to_nifti(ds, roi, radius):
+    i = 1
+    if not os.path.exists("results/nifti/scenes/{0}".format(roi)):
+        os.mkdir("results/nifti/scenes/{0}".format(roi))
+    if not os.path.exists("results/nifti/scenes/{0}/radius_{1}".format(roi, radius)):
+        os.mkdir("results/nifti/scenes/{0}/radius_{1}".format(roi, radius))
     
-    #[0.043393577399359916,
- #0.067334589330481018,
- #.095296031312744486,
- ##0.13513582180415568]
+    for scene in ds.samples.T:
+        temp_ds = Dataset(scene.reshape((1, len(scene))))
+        temp_ds.fa = ds.fa
+        temp_ds.a = ds.a
+        du.export_to_nifti(temp_ds, "results/nifti/scenes/{0}/radius_{1}/scene_{2}".format(roi, radius, i))
+        i += 1
+    
+    
+def scene_svm_cross_validation_conf_mat(mask_path="../masks/bigmask_3x3x3.nii", roi="full_brain", 
+                             n_cpu=40, num_subjects=34, radii = [2,3,4]):
+    
+    cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu)
+    
+    cds.a["scene_changes"] = ld.get_2010_scene_splits(as_ints=True)
+    results = dict()
+    
+    for radius in radii:
+        ds = du.run_searchlight(cds, metric="scene_svm_cv_cm", radius=radius, n_cpu=n_cpu)
+        num_voxels = ds.shape[1]
+        num_scenes = len(cds.a.scene_changes)
+        accuracies = du.confusion_matrix_accuracies(ds.samples.T.reshape((num_voxels,num_scenes,num_scenes)))
+        res = Dataset(np.array(accuracies))
+        res.a = cds.a
+        res.fa = cds.fa
+        res.sa = cds.sa
+        export_scenes_to_nifti(res, roi, radius)
+        results["radius_{0}".format(radius)] = res
 
+                
+    return results
+    
+
+    
+    
+    
 ## Making masks
 ## open fslview
 ## save a mask

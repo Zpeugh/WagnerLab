@@ -7,6 +7,9 @@ import fmri_preprocessing as fp
 from scipy.spatial.distance import pdist
 from fastdtw import fastdtw
 import rcca
+from mvpa2.suite import SVM as SVM
+from mvpa2.suite import CrossValidation as CV
+from mvpa2.suite import NFoldPartitioner as NFoldPartitioner
 from mvpa2.misc.stats import ttest_1samp as ttest
 
 """
@@ -194,12 +197,68 @@ def scene_based_isc(ds):
 
 
 
+def scene_svm_cross_validation(cds):  
+    
+    num_subj = cds.shape[0]
+    num_voxels = cds.shape[1]
+    num_scenes = len(cds.a.scene_changes)
+    ds_list = np.zeros((num_subj, num_voxels, num_scenes))
+    prev_cutoff = 0
+    ds_tup = ()
+    
+    # average correlations for each scene
+    for i, scene_cutoff in enumerate(cds.a.scene_changes):
+        ds_list[:,:,i] = np.mean(cds.samples[:,:,prev_cutoff:scene_cutoff], axis=2)
+        prev_cutoff = scene_cutoff
+       
+    for subj in ds_list:
+        ds_tup = ds_tup + (subj.T, )
+        
+    ds = Dataset(np.concatenate(ds_tup))  
+
+    ds.sa['subjects'] = np.repeat(np.arange(num_subj), num_scenes)
+    ds.sa['targets'] = np.tile(np.arange(num_scenes), num_subj)
+    ds.sa['chunks'] = np.tile(np.arange(num_scenes), num_subj)
+
+    clf = SVM()
+       
+    cv = CV(clf, NFoldPartitioner(attr='subjects'))
+    cv_results = cv(ds)
+    return 1 - np.mean(cv_results)
 
 
 
 
 
 
+def scene_svm_cross_validation_confusion_matrix(cds):  
+    
+    num_subj = cds.shape[0]
+    num_voxels = cds.shape[1]
+    num_scenes = len(cds.a.scene_changes)
+    ds_list = np.zeros((num_subj, num_voxels, num_scenes))
+    prev_cutoff = 0
+    ds_tup = ()
+    
+    # average correlations for each scene
+    for i, scene_cutoff in enumerate(cds.a.scene_changes):
+        ds_list[:,:,i] = np.mean(cds.samples[:,:,prev_cutoff:scene_cutoff], axis=2)
+        prev_cutoff = scene_cutoff
+       
+    for subj in ds_list:
+        ds_tup = ds_tup + (subj.T, )
+        
+    ds = Dataset(np.concatenate(ds_tup))  
+
+    ds.sa['subjects'] = np.repeat(np.arange(num_subj), num_scenes)
+    ds.sa['targets'] = np.tile(np.arange(num_scenes), num_subj)
+    ds.sa['chunks'] = np.tile(np.arange(num_scenes), num_subj)
+
+    clf = SVM()
+       
+    cv = CV(clf, NFoldPartitioner(attr='subjects'), enable_ca=['stats'])
+    cv_results = cv(ds)
+    return cv.ca.stats.matrix.flatten()
 
 
 
