@@ -348,6 +348,10 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
         measure = scene_svm_cross_validation
     elif metric =="scene_svm_cv_cm":
         measure = scene_svm_cross_validation_confusion_matrix
+    elif metric == "cluster_scenes":
+        measure = cluster_scenes
+    elif metric == "cluster_scenes_track_indices":
+        measure = cluster_scenes_track_indices
     else:
         print("Invalid metric, using Pearson's Correlation by default.")
         measure = pearsons_average
@@ -558,8 +562,8 @@ def confusion_matrix_accuracies(ds, average=False):
         return result.mean(axis=1)
     else:    
         return result
-        
-    
+
+
     
     
     

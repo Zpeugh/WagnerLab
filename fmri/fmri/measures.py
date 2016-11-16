@@ -5,6 +5,7 @@ import numpy as np
 from mvpa2.tutorial_suite import Dataset
 import fmri_preprocessing as fp
 from scipy.spatial.distance import pdist
+from scipy.spatial.distance import euclidean
 from fastdtw import fastdtw
 import rcca
 from mvpa2.suite import SVM as SVM
@@ -174,7 +175,7 @@ def scene_based_isc(ds):
     num_subj = ds.shape[0]
     num_voxels = ds.shape[1]
     num_scenes = len(ds.a.scene_changes)
-    ds_list = np.zeros((num_subj, num_voxels, num_scenes))
+    ds_list = np.zeros((num_subj, num_voxels, num_scenes-1))
     prev_cutoff = 0
 
     # average correlations for each scene
@@ -202,7 +203,7 @@ def scene_svm_cross_validation(cds):
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
     num_scenes = len(cds.a.scene_changes)
-    ds_list = np.zeros((num_subj, num_voxels, num_scenes))
+    ds_list = np.zeros((num_subj, num_voxels, num_scenes-1))
     prev_cutoff = 0
     ds_tup = ()
     
@@ -235,15 +236,19 @@ def scene_svm_cross_validation_confusion_matrix(cds):
     
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
-    num_scenes = len(cds.a.scene_changes)
-    ds_list = np.zeros((num_subj, num_voxels, num_scenes))
+    scenes = cds.a.scene_changes
+    num_scenes = len(scenes)
+    ds_list = np.zeros((num_subj, num_voxels, num_scenes-1))
     prev_cutoff = 0
     ds_tup = ()
     
     # average correlations for each scene
-    for i, scene_cutoff in enumerate(cds.a.scene_changes):
-        ds_list[:,:,i] = np.mean(cds.samples[:,:,prev_cutoff:scene_cutoff], axis=2)
-        prev_cutoff = scene_cutoff
+    for i in range(num_scenes - 1):
+        if scenes[i] <= scenes[i+1]:
+            ds_list[:,:,i] = np.mean(cds.samples[:,:,scenes[i]:scenes[i+1]], axis=2)
+        elif scenes[i-1] - scenes[i+1] > 1:
+            ds_list[:,:,i] = np.mean(cds.samples[:,:,scenes[i-1]:scenes[i+1]], axis=2)
+
        
     for subj in ds_list:
         ds_tup = ds_tup + (subj.T, )
@@ -261,11 +266,146 @@ def scene_svm_cross_validation_confusion_matrix(cds):
     return cv.ca.stats.matrix.flatten()
 
 
+def cluster_scenes(cds, clusters_per_iter=80):
+    
+    num_subj = cds.shape[0]
+    num_voxels = cds.shape[1]
+    scenes = cds.a.scene_changes
+    n_scenes = len(scenes)
+    iteration = 0
+    
+    samples = np.mean(cds.samples, axis=0).T
+        
+    n_samples = samples.shape[0]
+    n_clusters = n_samples
+    clusters_per_iter = clusters_per_iter
+    #cluster_depreciation
+    #print("clusters per iteration: {0}".format(clusters_per_iter))
+    
+    while len(samples) > n_scenes:         
+        #print("Iteration {0}: {1} clusters left".format(iteration, len(samples)))        
+        iteration += 1        
+        correlations = []
+        new_cluster = []
+        clusters = []
+        last_merged = -1   
+        if len(samples) - clusters_per_iter < n_scenes:
+            clusters_per_iter = len(samples) - n_scenes
+        for i in range(len(samples) - 1):
+            correlations.append(np.corrcoef(samples[i], samples[i+1])[0,1])
+        
+        corrs = np.array(correlations)
+        max_indices = np.argpartition(corrs, -clusters_per_iter)[-clusters_per_iter:]
+        #print(np.sort(max_indices))
+        for j in range(len(samples) - 1):
+            if j in max_indices:
+                if j-1 in max_indices:
+                    last_merged = j+1
+                    new_cluster = np.mean([clusters[-1], samples[j+1]], axis=0)
+                    #print("multiple merged clusters {0} and {1}".format(j, j+1))
+                    clusters[-1] = new_cluster                    
+                else:
+                    last_merged = j + 1
+                    new_cluster = np.mean([samples[j], samples[j+1]], axis=0)
+                    #print("single merged clusters {0} and {1}".format(j, j+1))                   
+                    clusters.append(new_cluster)                    
+            elif j != last_merged:                            
+                #print("adding {0}".format(j))
+                clusters.append(samples[j])
+        if last_merged is not len(samples) - 1:
+            #print("adding {0}".format(len(samples) - 1))
+            clusters.append(samples[len(samples) - 1])
+        samples = clusters       
+    
+    samples = np.array(samples)
+    #print(samples.shape)
+    
+    ################### compare with scene boundaries given ##################    
+    
+    ds_list = np.zeros((n_scenes, num_voxels))
+    
+    prev_cutoff = 0
+    scene_samples = np.mean(cds.samples, axis=0).T
+    # average correlations for each scene
+    for i, scene_cutoff in enumerate(cds.a.scene_changes):
+        ds_list[i,:] = np.mean(scene_samples[prev_cutoff:scene_cutoff,:], axis=0)
+        prev_cutoff = scene_cutoff
+    
+    
+    return np.mean([np.corrcoef(samples[i],ds_list[i])[0,1] for i in range(n_scenes)])
+    
 
 
 
+
+
+def cluster_scenes_track_indices(cds, clusters_per_iter=80):
+    
+    num_subj = cds.shape[0]
+    num_voxels = cds.shape[1]
+    scenes = cds.a.scene_changes
+    n_scenes = len(scenes)
+    iteration = 0
+    
+    samples = np.mean(cds.samples, axis=0).T
+    
+    # add the indices as an extra dimension at the beginning of the voxels
+      
+    n_samples = samples.shape[0]
+    
+    samples = np.hstack((np.arange(n_samples).reshape((n_samples,1)), samples))
+    
+    clusters_per_iter = clusters_per_iter
+    #print("clusters per iteration: {0}".format(clusters_per_iter))
+    
+    while len(samples) > n_scenes:         
+        #print("Iteration {0}: {1} clusters left".format(iteration, len(samples)))        
+        iteration += 1        
+        correlations = []
+        new_cluster = []
+        clusters = []
+        last_merged = -1   
+        if len(samples) - clusters_per_iter < n_scenes:
+            clusters_per_iter = len(samples) - n_scenes
+        for i in range(len(samples) - 1):
+            correlations.append(np.corrcoef(samples[i][1:], samples[i+1][1:])[0,1])
+        
+        corrs = np.array(correlations)
+        max_indices = np.argpartition(corrs, -clusters_per_iter)[-clusters_per_iter:]
+        #print(np.sort(max_indices))
+        for j in range(len(samples) - 1):
+            if j in max_indices:
+                if j-1 in max_indices:
+                    last_merged = j+1
+                    old_index = clusters[-1][0]
+                    new_index = samples[j+1][0]                    
+                    new_cluster = np.mean([clusters[-1], samples[j+1]], axis=0)
+                    if new_index > old_index:
+                        new_cluster[0] = new_index
+                    else:
+                        new_cluster[0] = old_index
+                    #print("multiple merged clusters {0} and {1}".format(j, j+1))
+                    clusters[-1] = new_cluster                    
+                else:
+                    last_merged = j + 1
+                    old_index = samples[j][0]
+                    new_index = samples[j+1][0]
+                    new_cluster = np.mean([samples[j], samples[j+1]], axis=0)
+                    #print("single merged clusters {0} and {1}".format(j, j+1))                                       
+                    if new_index > old_index:
+                        new_cluster[0] = new_index
+                    else:
+                        new_cluster[0] = old_index
+                    clusters.append(new_cluster)                    
+            elif j != last_merged:                            
+                #print("adding {0}".format(j))
+                clusters.append(samples[j])
+        if last_merged is not len(samples) - 1:
+            #print("adding {0}".format(len(samples) - 1))
+            clusters.append(samples[len(samples) - 1])
+        samples = clusters       
     
     
+    indices = np.array(samples)[:,0]    
     
-    
-    
+    return euclidean(indices, cds.a.scene_changes)
