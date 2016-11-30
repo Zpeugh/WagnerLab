@@ -192,8 +192,6 @@ def plot_activation_vs_scene_change(mask_path, window=5, a=0.01, n_cpu=20):
 
     
     
-        
-    
 def validation_cca(num_subjects, mask_path, radii=[0,1,2], n_cpu=None):
     
     cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path)
@@ -227,7 +225,6 @@ def pick_random_pair_shift_one(cds):
     
     samples = np.zeros((2, cds.shape[1], cds.shape[2]))
     samples[0,:,:] = subj1
-    #samples[1,:,:] = du.randomize_subject(cds.samples[s2,:,:])
     samples[1,:,:] = du.shift_subject(cds.samples[s2,:,:])
     ds = Dataset(samples) 
     ds.a = cds.a
@@ -257,11 +254,11 @@ def create_null_p_mapping(cds, n=10, radius=2, alpha = 0.05, n_cpu=10):
     for i in range(0,n):
         ds = random_shift_all_but_n(cds, i % cds.shape[0])
         cca_res = du.run_searchlight(ds, metric="1_to_many_cca", radius=radius, n_cpu=n_cpu)
-        #corr_res = du.run_searchlight(ds, metric="correlation", radius=radius, n_cpu=n_cpu)
+        corr_res = du.run_searchlight(ds, metric="correlation", radius=radius, n_cpu=n_cpu)
         results["cca"].append(np.mean(cca_res.samples))
-        #results["pearson"].append(np.mean(corr_res.samples))
+        results["pearson"].append(np.mean(corr_res.samples))
         if (i % 2 == 0):
-            #corr_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["pearson"]), scale=np.std(results["pearson"]))[1]
+            corr_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["pearson"]), scale=np.std(results["pearson"]))[1]
             cca_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["cca"]), scale=np.std(results["cca"]))[1]
             print("\n{0} Iterations done\n".format(i))
             print("CCA Mean is currently {0}\nP thresh is: {1}". format(np.mean(results["cca"]),cca_p_thresh))
@@ -273,18 +270,18 @@ def create_null_p_mapping(cds, n=10, radius=2, alpha = 0.05, n_cpu=10):
             plt.ylabel('Frequency')
             plt.title("Null distribution for Canonical Correlation Analysis: Radius {0}".format(radius))
             plt.show()
-            #print("Correlation Mean is currently {0}\nP thresh is: {1}". format(np.mean(results["pearson"]),corr_p_thresh))
+            print("Correlation Mean is currently {0}\nP thresh is: {1}". format(np.mean(results["pearson"]),corr_p_thresh))
         if (i % 100 == 0):
-            #corr_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["pearson"]), scale=np.std(results["pearson"]))[1]
+            corr_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["pearson"]), scale=np.std(results["pearson"]))[1]
             cca_p_thresh = stats.norm.interval(1-alpha, loc=np.mean(results["cca"]), scale=np.std(results["cca"]))[1]
         
-            #plt.clf()
-            #plt.hist(results["pearson"], bins=50)
-            #plt.axvline(corr_p_thresh, color='r', linestyle='--')    
-            #plt.xlabel("Pearson's Correlation")   
-            #plt.ylabel('Frequency')
-            #plt.title("Null distribution for Pearson's Correlation: Radius {0}".format(radius))
-            #plt.show()
+            plt.clf()
+            plt.hist(results["pearson"], bins=50)
+            plt.axvline(corr_p_thresh, color='r', linestyle='--')    
+            plt.xlabel("Pearson's Correlation")   
+            plt.ylabel('Frequency')
+            plt.title("Null distribution for Pearson's Correlation: Radius {0}".format(radius))
+            plt.show()
             
             plt.clf()
             plt.hist(results["cca"], bins=50)
@@ -343,41 +340,6 @@ def thresholded_isc_v_isi_analysis(cds, n=10, radius=2, alpha = 0.05, n_cpu=10):
     
     
     
-'''
-    Method to use an SVM to classify time segments between subjects. 
-'''    
-def between_subject_time_point_classification(ds_list=None, window=6, mask_path="../masks/aal_l_fusiform_3x3x3.nii", n_cpu=20, num_subjects=5):  
-    
-    if ds_list == None:
-        ds_list = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu, combine=False)
-    
-
-    num_subjects = len(ds_list)
-    num_samples = ds_list[0].shape[0]
-    num_voxels = ds_list[0].shape[1]
-    
-    ds_tup = ()
-    
-    for ds in ds_list:
-       
-        ds_tup = ds_tup + ( np.repeat(ds, window, axis=0), )
-        #events = find_events(targets=padded_ds.sa.targets, chunks=padded_ds.sa.chunks)
-            
-    cds = Dataset(np.concatenate(ds_tup))      
-    cds.sa['subjects'] = np.repeat(np.arange(num_subjects), window * num_samples)
-    chunked_targets = np.repeat(np.arange(num_samples), window) 
-    cds.sa['targets'] = np.tile(chunked_targets, num_subjects)
-    cds.sa['chunks'] = np.repeat(np.arange(num_subjects*num_samples), window)
-
-    clf = SVM()
-       
-    cv = CrossValidation(clf, NFoldPartitioner(attr='subjects'))
-    cv_results = cv(cds)
-    print("Mean Error: ", np.mean(cv_results))
-    return cds, cv_results
-
-
-
 def scene_svm_cross_validation(cds=None, mask_path="../masks/aal_l_hippocampus_3x3x3.nii", n_cpu=20, num_subjects=5):  
     
     if cds == None:
@@ -427,7 +389,7 @@ def scene_double_correlation(mask_path="../masks/bigmask_3x3x3.nii", file_prefix
     results = []
     
     for radius in radii:
-        res = du.run_searchlight(cds, metric="scene_based_isc", radius=radius, n_cpu=n_cpu)
+        res = du.run_searchlight(cds, metric="scene_based_double_corr", radius=radius, n_cpu=n_cpu)
         du.export_to_nifti(res, "results/nifti/scene_splits/{0}_s{1}_r{2}".format(file_prefix, num_subjects, radius))
         results.append(res)
         
@@ -552,7 +514,6 @@ def show_dendrogram(cds=None, scenes=None, num_subjects=34, mask_path="../masks/
     for i in range(num_scenes - 1):
         ds_list[:,:,i] = np.mean(cds.samples[:,:,scenes[i]:scenes[i+1]], axis=2)
        
-    print(np.mean(ds_list, axis=0).shape)
     Z = hierarchy.linkage(np.mean(ds_list, axis=0).T, metric='correlation')
         
     plt.figure(figsize=(14,8))
@@ -581,10 +542,8 @@ def principal_voxel_svm(cds=None, scenes=None, mask_path="../masks/aal_l_fusifor
     for i in range(num_scenes - 1):
         ds_list[:,:,i] = np.mean(cds.samples[:,:,scenes[i]:scenes[i+1]], axis=2)
     
-    for ds in ds_list:
-       
+    for ds in ds_list: 
         ds_tup = ds_tup + ( np.repeat(ds, window, axis=0), )
-        #events = find_events(targets=padded_ds.sa.targets, chunks=padded_ds.sa.chunks)
             
     cds = Dataset(np.concatenate(ds_tup))      
     cds.sa['subjects'] = np.repeat(np.arange(num_subjects), num_scenes * num_voxels)
@@ -598,6 +557,8 @@ def principal_voxel_svm(cds=None, scenes=None, mask_path="../masks/aal_l_fusifor
     cv_results = cv(cds)
     print("Mean Error: ", np.mean(cv_results))
     return cds, cv_results
+    
+    
 ## Making masks
 ## open fslview
 ## save a mask

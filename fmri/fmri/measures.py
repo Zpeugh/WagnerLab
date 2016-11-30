@@ -125,7 +125,7 @@ def rcca_validate_max(ds):
 # Then, all of these correlations will be pairwise correlated to all other subjects
 # in a second-level pearsons correlation analysis.  The resulting correlations are
 # averaged and returned as a scalar value.
-def timepoint_isc(ds):
+def timepoint_double_corr(ds):
     
     self_correlations = []
     
@@ -144,7 +144,7 @@ def timepoint_isc(ds):
 # samples.  This analysis is the same as the timepoint_isc metric, returning a second
 # level average correlation, only using averaged scene activations instead of every 
 # timepoint. 
-def scene_based_isc(ds):
+def scene_based_double_corr(ds):
     
     num_subj = ds.shape[0]
     num_voxels = ds.shape[1]

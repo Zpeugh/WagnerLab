@@ -316,9 +316,7 @@ def combine_datasets(dslist, transpose=True):
 ======================================================================================''' 
 def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=None):
 
-    if metric == 'dtw':
-        measure = dtw_average
-    elif metric == 'cca_u':
+    if metric == 'cca_u':
         measure = cca_uncentered
     elif metric == 'cca':
         measure = cca
@@ -340,10 +338,10 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
         measure = pvalues
     elif metric == 'tvalues':
         measure = tvalues
-    elif metric == "timepoint_isc":
-        measure = timepoint_isc
-    elif metric == "scene_based_isc":
-        measure = scene_based_isc
+    elif metric == "timepoint_double_corr":
+        measure = timepoint_double_corr
+    elif metric == "scene_based_double_corr":
+        measure = scene_based_double_corr
     elif metric == "scene_svm_cv":
         measure = scene_svm_cross_validation
     elif metric =="scene_svm_cv_cm":
@@ -400,56 +398,8 @@ def scene_segmentation_analysis(cds, scenes, metric='correlation', radius=2, n_c
 
 
 
-
-# Smooths the sums by doing a sliding window average.  
-# TODO: detect scene boundaries. 
-def detect_scenes(ds, window=5, a=0.01, n=34):
-    
-    X = ds.samples
-    total_voxels = ds.shape[1]
-    
-    min_t = scipy.stats.t.ppf(1-a, n)    
-    U = np.ma.masked_greater(X, min_t).mask  
-    
-    sums = np.array([np.sum(x) / float(total_voxels) for x in U])
-    avgs = np.zeros_like(sums)
-
-    plt.plot(sums)
-    for i in range(window):
-        buff = sums[:(i+1)]
-        add = np.hstack((buff, sums[:-(i+1)]))
-        avgs = avgs + add
-    
-    smoothed = avgs / float(window)
-    fd_threshold = 0.10
-    vertical_lines = []
-    colors = []
-    
-    for i in range(len(smoothed)-1):
-        x = smoothed[i]
-        y = smoothed[i+1]
-        if (y < fd_threshold and x > fd_threshold):            
-            vertical_lines.append(i+1)
-            colors.append('red')
-        elif (x<fd_threshold and y>fd_threshold):
-            vertical_lines.append(i-1)
-            colors.append('blue')
-    
-    vertical_lines = (np.array(vertical_lines) * 2.5) / 60.0
-    X = np.arange(len(smoothed)) * 2.5 / 60.0
-    
-    plt.clf()    
-    plt.figure(figsize=(12,4))  
-    plt.plot(X,smoothed)
-    for i, line in enumerate(vertical_lines):
-        plt.axvline(line, color=colors[i])
-    plt.xlabel('Time (minutes)')
-    plt.ylabel("% of brain 'activated' with a={0}".format(a))
-    plt.show()
-
-
 '''
-    
+    ds             The dataset
     plot_title     Should be a string with {0} in it for the run number of each plot
 
 '''    
@@ -500,7 +450,7 @@ def find_common_activation_zones_at_scene_change(cds, scenes, padding=2):
         t_values_before = ttest(voxels_before, popmean=0, alternative='greater')[0]
         t_values_after = ttest(voxels_after, popmean=0, alternative='greater')[0]
         
-        # TODO:  make the sample shape (1, n) not (n, 1)=acenrsvz[]
+        # TODO:  make the sample shape (1, n) not (n, 1)
         samples = abs(t_values_before - t_values_after)
         samples = (samples - np.mean(samples)) / np.std(samples)
         if (i == 0):
@@ -522,7 +472,9 @@ def find_common_activation_zones_at_scene_change(cds, scenes, padding=2):
     return differences, ds
     
     
-# rolls data a random number of permutations on the longest axis 
+# Rolls data a random number of permutations on the longest axis.  For example,
+# the array [1,2,3,4,5,6] could be returned as something like [4,5,6,1,2,3].  The axis
+# with the highest dimensionality is used to roll on. 
 def shift_subject(ds):
     
     num_samples = 1
@@ -542,6 +494,7 @@ def shift_subject(ds):
     
     return np.roll(ds, rand_perm, axis=axis)
     
+# Returns a completely randomly shuffled version of a dataset with shape (n, m)   
 def randomize_subject(ds):
     ds_copy = ds.copy()
     total_samples = ds.shape[0] * ds.shape[1]
