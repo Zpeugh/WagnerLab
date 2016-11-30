@@ -530,10 +530,14 @@ def scene_based_mds(num_subjects=34, mask_path="../masks/aal_l_fusiform_3x3x3.ni
     
     return dsm
 
-def show_dendrogram(num_subjects=34, mask_path="../masks/aal_l_fusiform_3x3x3.nii", n_cpu=34):    
+def show_dendrogram(cds=None, scenes=None, num_subjects=34, mask_path="../masks/aal_l_fusiform_3x3x3.nii", n_cpu=34):    
     
-    cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu)
-    cds.a["scene_changes"] = ld.get_2010_scene_splits()
+    if cds is None:      
+        cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu)
+    if scenes is not None:
+        cds.a["scene_changes"] = scenes
+    else:        
+        cds.a["scene_changes"] = ld.get_2010_scene_splits()
 
 
     num_subj = cds.shape[0]
@@ -550,12 +554,50 @@ def show_dendrogram(num_subjects=34, mask_path="../masks/aal_l_fusiform_3x3x3.ni
        
     print(np.mean(ds_list, axis=0).shape)
     Z = hierarchy.linkage(np.mean(ds_list, axis=0).T, metric='correlation')
-    
-    plt.figure()
+        
+    plt.figure(figsize=(14,8))
     hierarchy.dendrogram(Z)
     plt.show()
+    return Z
     
+def principal_voxel_svm(cds=None, scenes=None, mask_path="../masks/aal_l_fusiform_3x3x3.nii", n_cpu=20, num_subjects=5):  
+    
+    if cds == None:
+        cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu, combine=False)
+    if scenes is not None:
+        cds.a["scene_changes"] = scenes
+    else:        
+        cds.a["scene_changes"] = ld.get_2010_scene_splits()
+    
+    num_subj = cds.shape[0]
+    num_voxels = cds.shape[1]
+    scenes = cds.a.scene_changes
+    num_scenes = len(scenes) - 1
+    ds_list = np.zeros((num_subj, num_voxels, num_scenes))
+    prev_cutoff = 0
+    ds_tup = ()
+    
+    # average correlations for each scene
+    for i in range(num_scenes - 1):
+        ds_list[:,:,i] = np.mean(cds.samples[:,:,scenes[i]:scenes[i+1]], axis=2)
+    
+    for ds in ds_list:
+       
+        ds_tup = ds_tup + ( np.repeat(ds, window, axis=0), )
+        #events = find_events(targets=padded_ds.sa.targets, chunks=padded_ds.sa.chunks)
+            
+    cds = Dataset(np.concatenate(ds_tup))      
+    cds.sa['subjects'] = np.repeat(np.arange(num_subjects), num_scenes * num_voxels)
+    chunked_targets = np.repeat(np.arange(num_samples), num_scenes) 
+    cds.sa['targets'] = np.tile(chunked_targets, num_subjects)
+    cds.sa['chunks'] = np.repeat(np.arange(num_subjects*num_samples), num_scenes)
 
+    clf = SVM()
+       
+    cv = CrossValidation(clf, NFoldPartitioner(attr='subjects'))
+    cv_results = cv(cds)
+    print("Mean Error: ", np.mean(cv_results))
+    return cds, cv_results
 ## Making masks
 ## open fslview
 ## save a mask
