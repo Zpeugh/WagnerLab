@@ -350,9 +350,10 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
         measure = cluster_scenes
     elif metric == "cluster_scenes_track_indices":
         measure = cluster_scenes_track_indices
+    elif metric == "cluster_scenes_return_indices":
+        measure = cluster_scenes_return_indices
     else:
-        print("Invalid metric, using Pearson's Correlation by default.")
-        measure = pearsons_average
+        measure = metric
         
     sl = sphere_searchlight(measure, radius=radius, center_ids=center_ids, nproc=n_cpu)   
         
@@ -364,7 +365,7 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
 
 
 '''====================================================================================
-TODO:  Finish this function so that it returns a neat analysis of a time segment. 
+    Runs a correlation analysis
 ======================================================================================'''   
 def segment_analysis(ds, t_start, t_end, metric='all', radius=2, n_cpu=20): 
    
@@ -459,7 +460,7 @@ def find_common_activation_zones_at_scene_change(cds, scenes, padding=2):
             all_scenes = np.vstack((all_scenes,samples))
         print("Processed scene {0}/{1}".format(i+1, len(scenes)-1))
         ds = Dataset(samples.reshape((1, samples.shape[0])))       
-        ds.fa = cds.fa        
+        ds.fa = cds.fa
         ds.a = cds.a
         differences["scene_{0}".format(i+1)] = ds
         
@@ -509,24 +510,10 @@ def confusion_matrix_accuracies(ds, average=False):
     
     result = []
     for mat in ds:
-        result.append(np.true_divide(mat.diagonal(), mat.sum(axis=0)))
-    
+        result.append(np.true_divide(mat.diagonal(), mat.sum(axis=0)))    
     if average:
         return result.mean(axis=1)
     else:    
         return result
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-        
+     
   

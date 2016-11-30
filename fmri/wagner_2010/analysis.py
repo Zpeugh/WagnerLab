@@ -559,6 +559,22 @@ def principal_voxel_svm(cds=None, scenes=None, mask_path="../masks/aal_l_fusifor
     return cds, cv_results
     
     
+    
+def get_average_scene_bounds(cds=None, scenes=None, mask_path="../masks/aal_l_fusiform_3x3x3.nii", n_cpu=34, num_subjects=34, radius=2):  
+    
+    if cds == None:
+        cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu, combine=True)
+    if scenes is not None:
+        cds.a["scene_changes"] = scenes
+    else:        
+        cds.a["scene_changes"] = ld.get_2010_scene_splits()
+        
+    cds.a["clusters_per_iter"] = 80
+    ds = du.run_searchlight(cds, metric='cluster_scenes_return_indices', n_cpu=n_cpu, radius=radius)
+    
+    return ds    
+    
+    
 ## Making masks
 ## open fslview
 ## save a mask
