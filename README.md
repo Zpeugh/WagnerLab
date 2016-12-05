@@ -36,8 +36,10 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>measures.py</strong><br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; All of the methods in this file are used in searchlight analyses<br />
 
+
 ### fmri/masks/ ###
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Directory with NIFTI masks
+
 
 ### fmri/setup.py ###
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Run this script from this directory to temporarily add all modules from the fmri/fmri directory into your workspace
