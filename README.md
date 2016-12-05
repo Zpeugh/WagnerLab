@@ -4,23 +4,23 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 
 ## Directory Descriptions
 
-### fmri/wagner_2010/
-All of the results and scripts applicable to Dr. Dylan Wagner's 2010 study on the movie <em>Matchstick Men</em>
+###fmri/wagner_2010/
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All of the results and scripts applicable to Dr. Dylan Wagner's 2010 study on the movie <em>Matchstick Men</em>
 
->##### load_data.py
->>>This is a convenience file with methods to load in the 2010 data.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; #####load_data.py<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This is a convenience file with methods to load in the 2010 data.
 
->##### analysis.py
->>Various adjustable tests for running on the 2010 dataset
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>analysis.py</strong><br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Various adjustable tests for running on the 2010 dataset
 
->##### results/data/
->>Pickle files of data small enough to save to GitHub
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>results/data/</strong><br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pickle files of data small enough to save to GitHub
 
->##### results/figures/ 
->>Graphs and plots of some results
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>results/figures/</strong><br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Graphs and plots of some results
 
->##### results/nifti/ 
->>NIFTI files of results
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>results/nifti/</strong><br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NIFTI files of results
 -
 
 ### fmri/fmri/
