@@ -7,7 +7,7 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 ###fmri/wagner_2010/
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All of the results and scripts applicable to Dr. Dylan Wagner's 2010 study on the movie <em>Matchstick Men</em>
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; #####load_data.py<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp <strong>load_data.py</strong><br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This is a convenience file with methods to load in the 2010 data.
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>analysis.py</strong><br />
@@ -24,16 +24,16 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 -
 
 ### fmri/fmri/
-The general utility scripts with methods for pre and post processing fMRI timeseries data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The general utility scripts with methods for pre and post processing fMRI timeseries data
 
->##### fmri_preprocessing.py
->>Here are all of the functions for combining, splicing, and detrending data raw NIFTI data from the fMRI. 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>fmri_preprocessing.py</strong><br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Here are all of the functions for combining, splicing, and detrending data raw NIFTI data from the fMRI. 
 
->##### dataset_utilities.py
->>This module holds all of the functions to run analyses on preprocessed Datasets
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>dataset_utilities.py</strong><br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This module holds all of the functions to run analyses on preprocessed Datasets
 
->##### measures.py
->>All of the methods in this file are used in searchlight analyses
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>measures.py</strong><br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All of the methods in this file are used in searchlight analyses
 -
 
 ### fmri/masks/
