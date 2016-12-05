@@ -8,7 +8,7 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; All of the results and scripts applicable to Dr. Dylan Wagner's 2010 study on the movie <em>Matchstick Men</em>
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>load_data.py</strong><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; This is a convenience file with methods to load in the 2010 data.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; This is a convenience file with methods to load in the 2010 data.
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>analysis.py</strong><br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Various adjustable tests for running on the 2010 dataset
@@ -35,7 +35,7 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; All of the methods in this file are used in searchlight analyses<br />
 
 ### fmri/masks/ ###
-Directory with NIFTI masks
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Directory with NIFTI masks
 
 ### fmri/setup.py ###
-Run this script from this directory to temporarily add all modules from the fmri/fmri directory into your workspace
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Run this script from this directory to temporarily add all modules from the fmri/fmri directory into your workspace
