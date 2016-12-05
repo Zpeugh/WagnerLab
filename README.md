@@ -4,40 +4,41 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 
 ## Directory Descriptions
 
->### fmri/wagner_2010/
+### fmri/wagner_2010/
 All of the results and scripts applicable to Dr. Dylan Wagner's 2010 study on the movie <em>Matchstick Men</em>
 
->>##### load_data.py
+>##### load_data.py
 >>>This is a convenience file with methods to load in the 2010 data.
 
->>##### analysis.py
->>>Various adjustable tests for running on the 2010 dataset
+>##### analysis.py
+>>Various adjustable tests for running on the 2010 dataset
 
->>##### results/data/
->>>Pickle files of data small enough to save to GitHub
+>##### results/data/
+>>Pickle files of data small enough to save to GitHub
 
->>##### results/figures/ 
->>>Graphs and plots of some results
+>##### results/figures/ 
+>>Graphs and plots of some results
 
->>##### results/nifti/ 
->>>NIFTI files of results
-
+>##### results/nifti/ 
+>>NIFTI files of results
 -
->### fmri/fmri/
+
+### fmri/fmri/
 The general utility scripts with methods for pre and post processing fMRI timeseries data
 
->>##### fmri_preprocessing.py
->>>Here are all of the functions for combining, splicing, and detrending data raw NIFTI data from the fMRI. 
+>##### fmri_preprocessing.py
+>>Here are all of the functions for combining, splicing, and detrending data raw NIFTI data from the fMRI. 
 
->>##### dataset_utilities.py
->>>This module holds all of the functions to run analyses on preprocessed Datasets
+>##### dataset_utilities.py
+>>This module holds all of the functions to run analyses on preprocessed Datasets
 
->>##### measures.py
->>>All of the methods in this file are used in searchlight analyses
-
+>##### measures.py
+>>All of the methods in this file are used in searchlight analyses
 -
->### masks/
-Directory with NIFTI masks
 
->setup.py
+### fmri/masks/
+Directory with NIFTI masks
+-
+
+### fmri/setup.py
 Run this script from this directory to temporarily add all modules from the fmri/fmri directory into your workspace
