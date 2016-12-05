@@ -23,7 +23,7 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NIFTI files of results</p><br />
 
 ### fmri/fmri/ ###
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The general utility scripts with methods for pre and post processing fMRI timeseries data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The general utility scripts with methods for pre and post processing fMRI timeseries data
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>fmri_preprocessing.py</strong><br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Here are all of the functions for combining, splicing, and detrending data raw NIFTI data from the fMRI. 
