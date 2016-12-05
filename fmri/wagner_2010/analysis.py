@@ -5,7 +5,6 @@ Created on Wed May 25 12:46:17 2016
 @author: peugh.14
 """
 
-
 import load_data as ld
 import dataset_utilities as du
 import pickle

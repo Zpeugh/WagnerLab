@@ -24,15 +24,23 @@ Description:
     single value or an array of values depending on the metric.
 """
 
-# returns the average Pearson's correlation between all pairs
+
+
+'''
+    Returns the average Pearson's correlation between all pairs
+'''
 def pearsons_average(ds):
     return 1 - np.mean( pdist(np.mean(ds.samples, axis=1), metric='correlation') )
-    
-# return all combinations of Pearson's correlations between pairs
+  
+'''  
+    Return all combinations of Pearson's correlations between pairs
+'''
 def all_pearsons_averages(ds):
     return 1 - pdist(np.mean(ds.samples, axis=1), metric='correlation')
 
-# Returns all first canonical correlations, pre-mean centered at each time point  
+'''
+    Returns all first canonical correlations, pre-mean centered at each time point  
+'''
 def all_cca(ds):
     num_subj = ds.shape[0]
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
@@ -41,7 +49,9 @@ def all_cca(ds):
     return cca.cancorrs[0][np.triu_indices(num_subj,k=1)]
 
 
-# Returns the average first canonical correlation, mean centering at each time point  
+'''
+    Returns the average first canonical correlation, mean centering at each time point 
+''' 
 def cca(ds):
     num_subj = ds.shape[0]
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
@@ -52,7 +62,10 @@ def cca(ds):
     else:
         return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
         
-# Returns the average first canonical correlation, without mean centering at each time point    
+'''
+    Returns the average first canonical correlation, without mean centering at each 
+    time point    
+'''
 def cca_uncentered(ds):
     num_subj = ds.shape[0]
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
@@ -63,7 +76,10 @@ def cca_uncentered(ds):
         return np.mean(cca.cancorrs[0][np.triu_indices(num_subj,k=1)])
     
 
-# The first subject in the dataset is the one which will be compared to all other subjects
+'''
+    The first subject in the dataset is the one which will be compared to all other 
+    subjects
+'''
 def cca_one_to_all(ds):
     num_subj = ds.shape[0]
     cca = rcca.CCA(kernelcca=False, numCC=1, reg=0., verbose=False)
@@ -73,20 +89,25 @@ def cca_one_to_all(ds):
         return cca.cancorrs[0]
     else:
         return np.mean(cca.cancorrs[0][0][1:])
-        
-# Returns the p values for a null hypothesis of mean=0 and alternative being mean>0.
-# Sample size is the number of subjects in the Dataset. 
+'''      
+    Returns the p values for a null hypothesis of mean=0 and alternative being mean>0.
+    Sample size is the number of subjects in the Dataset. 
+'''
 def pvalues(ds):
     return ttest(ds.samples.mean(axis=1), popmean=0, alternative='greater')[1]
 
 
-# Returns the t statistics for a null hypothesis of mean=0 and alternative being mean>0.
-# Sample size is the number of subjects in the Dataset.     
+'''
+    Returns the t statistics for a null hypothesis of mean=0 and alternative being mean>0.
+    Sample size is the number of subjects in the Dataset.     
+'''
 def tvalues(ds):  
     return ttest(ds.samples.mean(axis=1), popmean=0, alternative='greater')[0]    
 
-
-# Run pyrcca's validate with a 50/50 split of training testing on samples within subjects    
+'''
+    Run pyrcca's validate with a 50/50 split of training testing on samples within 
+    subjects 
+'''   
 def cca_validate(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
@@ -101,8 +122,10 @@ def cca_validate(ds):
     cca.train(train_set)
     return np.mean(cca.validate(test_set))
 
-# Run pyrcca's validate with a 50/50 split of training testing on samples within subjects
-# Return the maximum correlation from the validation set.    
+'''
+    Run pyrcca's validate with a 50/50 split of training testing on samples within 
+    subjects. Return the maximum correlation from the validation set.    
+'''
 def cca_validate_max(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
@@ -118,12 +141,14 @@ def cca_validate_max(ds):
   
     return np.max(np.mean(cca.validate(test_set), axis=0))
     
-# Return the mean correlation of all of the correlation matricies for each timepoint
-# in a subject.  For example, if each subject has 500 timepoints with 25 voxels at each,
-# a correlation matrix of upper_triangle((500x500)) will be stored for each subject.
-# Then, all of these correlations will be pairwise correlated to all other subjects
-# in a second-level pearsons correlation analysis.  The resulting correlations are
-# averaged and returned as a scalar value.
+'''
+    Return the mean correlation of all of the correlation matricies for each timepoint
+    in a subject.  For example, if each subject has 500 timepoints with 25 voxels at each,
+    a correlation matrix of upper_triangle((500x500)) will be stored for each subject.
+    Then, all of these correlations will be pairwise correlated to all other subjects
+    in a second-level pearsons correlation analysis.  The resulting correlations are
+    averaged and returned as a scalar value.
+'''
 def timepoint_double_corr(ds):
     
     self_correlations = []
@@ -137,12 +162,13 @@ def timepoint_double_corr(ds):
     return np.mean(correlation)
     
     
-
-# Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
-# These integers will act as the scene boundaries and must be between 1 and number of 
-# samples.  This analysis is the same as the timepoint_isc metric, returning a second
-# level average correlation, only using averaged scene activations instead of every 
-# timepoint. 
+'''
+    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    These integers will act as the scene boundaries and must be between 1 and number of 
+    samples.  This analysis is the same as the timepoint_isc metric, returning a second
+    level average correlation, only using averaged scene activations instead of every 
+    timepoint. 
+'''
 def scene_based_double_corr(ds):
     
     num_subj = ds.shape[0]
@@ -169,12 +195,13 @@ def scene_based_double_corr(ds):
     # return the average isc scene based correlation
     return np.mean(correlation)
 
-
-# Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
-# These integers will act as the scene boundaries and must be between 1 and number of 
-# samples. This metric builds an SVM, using averaged scenes as the classes to predict
-# N-fold (where N is cds.shape[0] -1, i.e. number of subjects) cross-validation
-# is conducted, and the average prediction accuracy of the SVM is returned.
+'''
+    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    These integers will act as the scene boundaries and must be between 1 and number of 
+    samples. This metric builds an SVM, using averaged scenes as the classes to predict
+    N-fold (where N is cds.shape[0] -1, i.e. number of subjects) cross-validation
+    is conducted, and the average prediction accuracy of the SVM is returned.
+'''
 def scene_svm_cross_validation(cds):  
     
     num_subj = cds.shape[0]
@@ -205,12 +232,13 @@ def scene_svm_cross_validation(cds):
     return 1 - np.mean(cv_results)
 
 
-
-# Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
-# These integers will act as the scene boundaries and must be between 1 and number of 
-# samples. This metric builds an SVM, using averaged scenes as the classes to predict
-# N-fold (where N is cds.shape[0] -1, i.e. number of subjects) cross-validation
-# is conducted, and a flattened confusion matrix of the results are returned.  
+'''
+    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    These integers will act as the scene boundaries and must be between 1 and number of 
+    samples. This metric builds an SVM, using averaged scenes as the classes to predict
+    N-fold (where N is cds.shape[0] -1, i.e. number of subjects) cross-validation
+    is conducted, and a flattened confusion matrix of the results are returned.  
+'''
 def scene_svm_cross_validation_confusion_matrix(cds):  
     
     num_subj = cds.shape[0]
@@ -244,15 +272,17 @@ def scene_svm_cross_validation_confusion_matrix(cds):
     cv_results = cv(ds)
     return cv.ca.stats.matrix.flatten()
 
-# Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
-# These integers will act as the scene boundaries and must be between 1 and number of 
-# samples. Additionally, cds.a["clusters_per_iter"] must be set as an integer number
-# between 1 and the (<total number of timepoints> / <number of scenes>), with somewhere 
-# around 1/8th the number of timepoints being a good compromise for speed and accuracy.  
-# This algorithm hierarchically clusters timeseries into the same number of scenes as
-# the scene boundaries given using pearson's correlation.  Then the average correlation 
-# of the artificially created clustered scenes and the actual given scenes will be 
-# returned as a scalar 
+'''
+    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    These integers will act as the scene boundaries and must be between 1 and number of 
+    samples. Additionally, cds.a["clusters_per_iter"] must be set as an integer number
+    between 1 and the (<total number of timepoints> / <number of scenes>), with somewhere 
+    around 1/8th the number of timepoints being a good compromise for speed and accuracy.  
+    This algorithm hierarchically clusters timeseries into the same number of scenes as
+    the scene boundaries given using pearson's correlation.  Then the average correlation 
+    of the artificially created clustered scenes and the actual given scenes will be 
+    returned as a scalar 
+'''
 def cluster_scenes(cds):
     
     num_subj = cds.shape[0]
@@ -312,16 +342,18 @@ def cluster_scenes(cds):
         prev_cutoff = scene_cutoff
     
     return np.mean([np.corrcoef(samples[i],ds_list[i])[0,1] for i in range(n_scenes)])
-    
-# Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
-# These integers will act as the scene boundaries and must be between 1 and number of 
-# samples. Additionally, cds.a["clusters_per_iter"] must be set as an integer number
-# between 1 and the (<total number of timepoints> / <number of scenes>), with somewhere 
-# around 1/8th the number of timepoints being a good compromise for speed and accuracy.  
-# This algorithm hierarchically clusters timeseries into the same number of scenes as
-# the scene boundaries given using pearson's correlation.  Then the euclidean distance
-# between the original scene boundary indices and the ones generated by the clustering
-# method will be returned.
+
+'''    
+    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    These integers will act as the scene boundaries and must be between 1 and number of 
+    samples. Additionally, cds.a["clusters_per_iter"] must be set as an integer number
+    between 1 and the (<total number of timepoints> / <number of scenes>), with somewhere 
+    around 1/8th the number of timepoints being a good compromise for speed and accuracy.  
+    This algorithm hierarchically clusters timeseries into the same number of scenes as
+    the scene boundaries given using pearson's correlation.  Then the euclidean distance
+    between the original scene boundary indices and the ones generated by the clustering
+    method will be returned.
+'''
 def cluster_scenes_track_indices(cds):
     
     num_subj = cds.shape[0]
@@ -384,15 +416,17 @@ def cluster_scenes_track_indices(cds):
     indices = np.array(samples)[:,0]    
     
     return euclidean(indices, cds.a.scene_changes)
-    
-# Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
-# These integers will act as the scene boundaries and must be between 1 and number of 
-# samples. Additionally, cds.a["clusters_per_iter"] must be set as an integer number
-# between 1 and the (<total number of timepoints> / <number of scenes>), with somewhere 
-# around 1/8th the number of timepoints being a good compromise for speed and accuracy.  
-# This algorithm hierarchically clusters timeseries into the same number of scenes as
-# the scene boundaries given using pearson's correlation.  Then the boundary indices 
-# generated by the clustering method will be returned. 
+
+'''   
+    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    These integers will act as the scene boundaries and must be between 1 and number of 
+    samples. Additionally, cds.a["clusters_per_iter"] must be set as an integer number
+    between 1 and the (<total number of timepoints> / <number of scenes>), with somewhere 
+    around 1/8th the number of timepoints being a good compromise for speed and accuracy.  
+    This algorithm hierarchically clusters timeseries into the same number of scenes as
+    the scene boundaries given using pearson's correlation.  Then the boundary indices 
+    generated by the clustering method will be returned. 
+'''
 def cluster_scenes_return_indices(cds):
     
     num_subj = cds.shape[0]
