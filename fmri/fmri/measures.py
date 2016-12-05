@@ -199,28 +199,28 @@ def scene_based_double_corr(ds):
     N-fold (where N is cds.shape[0] -1, i.e. number of subjects) cross-validation
     is conducted, and the average prediction accuracy of the SVM is returned.
 '''
-def scene_svm_cross_validation(cds):  
+def event_svm_cross_validation(cds):  
     
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
-    num_scenes = len(cds.a.event_bounds) - 1
-    scenes = cds.a.event_bounds
-    ds_list = np.zeros((num_subj, num_voxels, num_scenes))
+    num_events = len(cds.a.event_bounds) - 1
+    events = cds.a.event_bounds
+    ds_list = np.zeros((num_subj, num_voxels, num_events))
     prev_cutoff = 0
     ds_tup = ()
     
     # average correlations for each scene
-    for i in range(num_scenes - 1):       
-       ds_list[:,:,i] = np.mean(cds.samples[:,:,scenes[i]:scenes[i+1]], axis=2)
+    for i in range(num_events - 1):       
+       ds_list[:,:,i] = np.mean(cds.samples[:,:,events[i]:events[i+1]], axis=2)
        
     for subj in ds_list:
         ds_tup = ds_tup + (subj.T, )
         
     ds = Dataset(np.concatenate(ds_tup))  
 
-    ds.sa['subjects'] = np.repeat(np.arange(num_subj), num_scenes)
-    ds.sa['targets'] = np.tile(np.arange(num_scenes), num_subj)
-    ds.sa['chunks'] = np.tile(np.arange(num_scenes), num_subj)
+    ds.sa['subjects'] = np.repeat(np.arange(num_subj), num_events)
+    ds.sa['targets'] = np.tile(np.arange(num_events), num_subj)
+    ds.sa['chunks'] = np.tile(np.arange(num_events), num_subj)
 
     clf = SVM()
        
@@ -236,32 +236,28 @@ def scene_svm_cross_validation(cds):
     N-fold (where N is cds.shape[0] -1, i.e. number of subjects) cross-validation
     is conducted, and a flattened confusion matrix of the results are returned.  
 '''
-def scene_svm_cross_validation_confusion_matrix(cds):  
+def event_svm_cross_validation_confusion_matrix(cds):  
     
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
-    scenes = cds.a.event_bounds
-    num_scenes = len(scenes)
-    ds_list = np.zeros((num_subj, num_voxels, num_scenes-1))
+    num_events = len(cds.a.event_bounds) - 1
+    events = cds.a.event_bounds
+    ds_list = np.zeros((num_subj, num_voxels, num_events))
     prev_cutoff = 0
     ds_tup = ()
     
     # average correlations for each scene
-    for i in range(num_scenes - 1):
-        if scenes[i] <= scenes[i+1]:
-            ds_list[:,:,i] = np.mean(cds.samples[:,:,scenes[i]:scenes[i+1]], axis=2)
-        elif scenes[i-1] - scenes[i+1] > 1:
-            ds_list[:,:,i] = np.mean(cds.samples[:,:,scenes[i-1]:scenes[i+1]], axis=2)
-
+    for i in range(num_events - 1):       
+       ds_list[:,:,i] = np.mean(cds.samples[:,:,events[i]:events[i+1]], axis=2)
        
     for subj in ds_list:
         ds_tup = ds_tup + (subj.T, )
         
     ds = Dataset(np.concatenate(ds_tup))  
 
-    ds.sa['subjects'] = np.repeat(np.arange(num_subj), num_scenes)
-    ds.sa['targets'] = np.tile(np.arange(num_scenes), num_subj)
-    ds.sa['chunks'] = np.tile(np.arange(num_scenes), num_subj)
+    ds.sa['subjects'] = np.repeat(np.arange(num_subj), num_events)
+    ds.sa['targets'] = np.tile(np.arange(num_events), num_subj)
+    ds.sa['chunks'] = np.tile(np.arange(num_events), num_subj)
 
     clf = SVM()
        

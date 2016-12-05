@@ -347,10 +347,10 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
         measure = timepoint_double_corr
     elif metric == "scene_based_double_corr":
         measure = scene_based_double_corr
-    elif metric == "scene_svm_cv":
-        measure = scene_svm_cross_validation
-    elif metric =="scene_svm_cv_cm":
-        measure = scene_svm_cross_validation_confusion_matrix
+    elif metric == "event_svm_cv":
+        measure = event_svm_cross_validation
+    elif metric =="event_svm_cv_cm":
+        measure = event_svm_cross_validation_confusion_matrix
     elif metric == "cluster_scenes":
         measure = cluster_scenes
     elif metric == "cluster_scenes_track_indices":
