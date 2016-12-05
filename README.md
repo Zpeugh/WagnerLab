@@ -11,7 +11,7 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; This is a convenience file with methods to load in the 2010 data.
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>analysis.py</strong><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Various adjustable tests for running on the 2010 dataset.  Mostly specific for the 2010 data, but this is a good place to see how to use some of the modules and methods for analysis
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Various adjustable tests for running on the 2010 dataset.  Mostly specific for the 2010 data, but this is a good place to<br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; see how to use some of the modules and methods for analysis
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>results/data/</strong><br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Pickle files of data small enough to save to GitHub
@@ -20,10 +20,9 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Graphs and plots of some results
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>results/nifti/</strong><br />
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NIFTI files of results</p><br />
-
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NIFTI files of results</p>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>results/tutorial.ipynb</strong><br />
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Change to this directory and run `ipython notebook` to open this interactive tutorial.  It should give users a headstart on using this toolkit.</p><br />
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Change to this directory and run `ipython notebook` to open this interactive tutorial.  It should give users a headstart <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; on using this toolkit.</p><br />
 
 ### fmri/fmri/ ###
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The general utility scripts with methods for pre and post processing fMRI timeseries data
