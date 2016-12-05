@@ -35,9 +35,9 @@ The general utility scripts with methods for pre and post processing fMRI timese
 >>##### measures.py
 >>>All of the methods in this file are used in searchlight analyses
 
->>##### rcca.py
->>>This is the source code from [pyrcca](https://github.com/gallantlab/pyrcca/blob/master/rcca.py) 
+-
+>### masks/
+Directory with NIFTI masks
 
->>##### masks/
->>>Directory with NIFTI masks
-
+>setup.py
+Run this script from this directory to temporarily add all modules from the fmri/fmri directory into your workspace
