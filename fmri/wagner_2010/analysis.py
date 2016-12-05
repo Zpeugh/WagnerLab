@@ -98,7 +98,6 @@ def timing_test(metric='cca', n_cpu=20, filename=None):
         t_0 = time.time()        
         du.run_searchlight(cds, radius=rad, n_cpu=n_cpu)
         times.append((time.time()-t_0) * n_cpu)
-    [1,5.3,20,53,86]
     plt.clf()
     fig = plt.figure(figsize=(10,6))
     plt.plot(times, '-o')

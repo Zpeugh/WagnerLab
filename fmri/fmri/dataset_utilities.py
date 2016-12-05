@@ -16,7 +16,6 @@ from measures import *
 
 
 
-
 '''====================================================================================
     Plot the timeseries of a single voxel for a Dataset using matplotlib.
     
@@ -32,6 +31,7 @@ def voxel_plot(ds, voxel_position):
     plt.axvline(422, color='r', linestyle='--')
     plt.show()
 
+
 '''====================================================================================
     Plot the intersubject information versus intersubject canonical correlation in
     a single color scatterplot.
@@ -44,8 +44,6 @@ def voxel_plot(ds, voxel_position):
     save                (optional) Boolean variable for whether or not you wish to save
                         the file
     filename            Required if save=True. The name of the file to save the figure as
-
-    voxel_position      a number representing which voxel in the dataset to display
 ======================================================================================'''  
 def plot_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
     plt.clf()    
@@ -71,11 +69,13 @@ def plot_isc_vs_isi(isc_data, isi_data, title, save=False, filename=None):
     isc_data            The Dataset object containing (1, n) intersubject correlation
                         data samples
     title               The string title for the figure
+    xlabel              (optional) The label for the x axis.  Defaults to 
+                        'Intersubject Correlation'
+    ylabel              (optional) The label for the y axis.  Defaults to 
+                        'Intersubject Information'
     save                (optional) Boolean variable for whether or not you wish to save
                         the file
     filename            Required if save=True. The name of the file to save the figure as
-
-    voxel_position      a number representing which voxel in the dataset to display
 ======================================================================================'''  
 def plot_colored_isc_vs_isi(isc_data, isi_data, title, xlabel='Intersubject Correlation', ylabel='Intersubject Information', save=False, filename=None):
    
@@ -117,10 +117,30 @@ def plot_colored_isc_vs_isi(isc_data, isi_data, title, xlabel='Intersubject Corr
     plt.show()
  
  
- 
+'''====================================================================================
+    Plot the intersubject information versus intersubject canonical correlation in
+    a quad-colored scatterplot.
+    
+    isc_data            The Dataset object containing (1, n) intersubject canonical
+                        correlation data samples
+    isc_data            The Dataset object containing (1, n) intersubject correlation
+                        data samples
+    title               The string title for the figure
+    isc_p_thresh        The false discovery threshold value for the intersubject 
+                        correlation
+    isi_p_thresh        The false discovery threshold value for the intersubject 
+                        information (canonical correlation)
+    xlabel              (optional) The label for the x axis.  Defaults to 
+                        'Intersubject Correlation'
+    ylabel              (optional) The label for the y axis.  Defaults to 
+                        'Intersubject Information'
+    save                (optional) Boolean variable for whether or not you wish to save
+                        the file
+    filename            Required if save=True. The name of the file to save the figure as
+======================================================================================''' 
 def plot_thresholded_isc_vs_isi(isc_data, isi_data, title, isc_p_thresh, isi_p_thresh, 
                                 xlabel='Intersubject Correlation', ylabel='Intersubject Information', 
-                                save=False, filename=None):
+                                save=False, filename=None, scale_axis=False):
    
     voxels = isc_data.fa.voxel_indices    
     
@@ -161,6 +181,10 @@ def plot_thresholded_isc_vs_isi(isc_data, isi_data, title, isc_p_thresh, isi_p_t
     plt.title(title, fontsize=15)
     plt.xlabel(xlabel,fontsize=15)
     plt.ylabel(ylabel, fontsize=15)
+    if scale_axis:   
+        ax_min = np.min(isi_data) - 0.05
+        ax_max = np.max(isi_data) + 0.05
+        plt.axis([-0.05, ax_max, -0.05, ax_max])
     
     if save:
         fig.savefig(filename)
@@ -174,6 +198,8 @@ def plot_thresholded_isc_vs_isi(isc_data, isi_data, title, isc_p_thresh, isi_p_t
                 hypothesis of mean=0.  
     a           The alpha level to count as 'activated'
     n           The number of subjects in the test
+    filename    If this is set then the plot will be saved, otherwise it will just 
+                be displayed
 ======================================================================================'''
 def plot_significant(ds, a=0.05, n=34, filename=None):
     X = ds.samples
@@ -193,32 +219,7 @@ def plot_significant(ds, a=0.05, n=34, filename=None):
     plt.show()
     return np.array(sums)
 
-# Work in progress.
-def plot_scenes(ds, a, filename=None):
-    
-    FALSE_DISCOVERY_RATE = 0.05
-    TOTAL_VOXELS_IN_BRAIN = ds.shape[1]
-    X = ds.samples
-    U = np.ma.masked_inside(X, 0,a).mask
-    
-    sums = [np.sum(x) for x in U]    
-    threshold = FALSE_DISCOVERY_RATE * TOTAL_VOXELS_IN_BRAIN
-    ones = np.zeros(ds.shape[0])
-    
-    for i, s in enumerate(sums):
-        if s > threshold:
-            ones[i] = 1
-            
-    plt.clf()
-    fig = plt.figure(figsize=(10,6))
-    plt.plot(ones, '.')
-    plt.xlabel('Time (2.5s increments)')
-    plt.ylabel('Activated (T/F)')
-    plt.ylim([0, 1.5])
-    plt.title('Binary Activations')
-    if filename:
-       fig.savefig(filename) 
-    plt.show()       
+  
 
 '''====================================================================================
     Takes a dataset with sample attributes of features and returns an ordered list of
@@ -303,8 +304,9 @@ def combine_datasets(dslist, transpose=True):
     searchlight analysis on all of the subjects given the metric input.
     
     ds          The Dataset object containing all of the subjects runs
-    metric      (optional) One of 'euclidean', 'dtw', 'cca', 'correlation', 'tvalues',
-                'pvalues', 'cca_vp'.
+    metric      (optional) A string representing one of the measures in the measures 
+                module, or alternatively, any method which takes a single parameter of
+                a Dataset and returns either a scalar or a 1 dimensional array of scalars
                 Defaults to Pearsons Correlation. 
     radius      (optional) The radius of the searchlight sphere. Defaults to 2.
     center_ids  (optional) The feature attribute name to use as the centers for the 
@@ -312,7 +314,7 @@ def combine_datasets(dslist, transpose=True):
     nproc       (optional) Number of processors to use.  Defaults to all available 
                 processors on the system. 
                         
-    Returns      The results of the searchlight
+    Returns      The results of the searchlight analysis
 ======================================================================================''' 
 def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=None):
 
@@ -326,10 +328,8 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
         measure = all_cca
     elif metric == 'cca_validate':
         measure = cca_validate
-    elif metric == 'rcca_validate':
-        measure = rcca_validate
-    elif metric == 'rcca_validate_max':
-        measure = rcca_validate_max
+    elif metric == 'cca_validate_max':
+        measure = cca_validate_max
     elif metric == 'correlation':
         measure = pearsons_average
     elif metric == 'all_pearsons':
@@ -365,117 +365,14 @@ def run_searchlight(ds, metric='correlation', radius=2, center_ids=None, n_cpu=N
 
 
 '''====================================================================================
-    Runs a correlation analysis
-======================================================================================'''   
-def segment_analysis(ds, t_start, t_end, metric='all', radius=2, n_cpu=20): 
-   
-    split_ds = Dataset(ds.samples[:, :, t_start:t_end])   
-    split_ds.fa = ds.fa
+    Rolls data a random number of permutations on the longest axis.  For example,
+    the array [1,2,3,4,5,6] could be returned as something like [4,5,6,1,2,3].  The axis
+    with the highest dimensionality is used to roll on. 
     
-    if metric == 'all':
-        corr_res = run_searchlight(split_ds, metric='correlation', radius=radius, n_cpu=n_cpu)
-        print("\nThe average correlation is: {0}".format(np.mean(corr_res.samples)))
-        print("The maximum correlation is: {0}".format(np.max(corr_res.samples)))        
-        
-        t_res = run_searchlight(split_ds, metric='tvalues', radius=radius, n_cpu=n_cpu)       
-        print("\nThe average t-value is: {0}".format(np.mean(t_res.samples)))
-        print("The maximum t-value is: {0}".format(np.max(t_res.samples)))
-        return corr_res, t_res
-    else:
-        return run_searchlight(split_ds, metric=metric, radius=radius, n_cpu=n_cpu)
-   
-
-def scene_segmentation_analysis(cds, scenes, metric='correlation', radius=2, n_cpu=20):
-    scene_correlations = dict()
-    scene_ds = dict()
-    for i in range (0, len(scenes)-1):
-        ds = segment_analysis(cds, int(scenes[i]), int(scenes[i+1]), metric=metric)
-        ds_mean = np.mean(ds.samples)
-        scene_correlations["scene_{0}".format(i+1)] = ds_mean
-        scene_ds["scene_{0}".format(i+1)] = ds
-        print("Finished scene {0}: Mean correlation was {1}".format(i, ds_mean))
-        
-    return scene_ds, scene_correlations
-
-
-
-'''
-    ds             The dataset
-    plot_title     Should be a string with {0} in it for the run number of each plot
-
-'''    
-def plot_activation_with_scenes(ds, scenes, plot_title, window=5, a=0.01, n=34):
+    ds      the arraylike object of shape (n, m) with time points to randomly shift
     
-    X = ds.samples
-    total_voxels = ds.shape[1]
-    
-    min_t = scipy.stats.t.ppf(1-a, n)    
-    U = np.ma.masked_greater(X, min_t).mask  
-    
-    sums = np.array([np.sum(x) / float(total_voxels) for x in U])
-    avgs = np.zeros_like(sums)
-
-    plt.plot(sums)
-    for i in range(0,window):
-        buff = sums[:(i+1)]
-        add = np.hstack((buff, sums[:-(i+1)]))
-        avgs = avgs + add
-    
-    smoothed = avgs / float(window)
-
-    for run in range(1,4):    
-        plt.clf()    
-        fig = plt.figure(figsize=(12,4))  
-        run_beg = (run-1)*211        
-        run_end = run*211
-        plt.plot(smoothed[run_beg:run_end])
-        for i, line in enumerate(scenes):
-            if (line < run_end and line > run_beg):            
-                plt.axvline((line - run_beg), color='r')
-        plt.xlabel('Time (2.5second slices)')
-        plt.ylabel("% of brain 'activated' with a={0}".format(a))
-        plt.title("Run {0} Brain Activation Compared to Scene Change".format(run))
-        fig.savefig(plot_title.format(run))
-        plt.show()
-
-def find_common_activation_zones_at_scene_change(cds, scenes, padding=2):
-
-    differences = dict()
-    all_scenes = []
-    
-    for i in range(0, len(scenes)-1):
-        scene_change = scenes[i]
-        voxels_before = np.mean(cds.samples[:,:,scene_change-padding:scene_change], axis=2)
-        voxels_after = np.mean(cds.samples[:,:,scene_change:scene_change+padding], axis=2)
-        
-        t_values_before = ttest(voxels_before, popmean=0, alternative='greater')[0]
-        t_values_after = ttest(voxels_after, popmean=0, alternative='greater')[0]
-        
-        # TODO:  make the sample shape (1, n) not (n, 1)
-        samples = abs(t_values_before - t_values_after)
-        samples = (samples - np.mean(samples)) / np.std(samples)
-        if (i == 0):
-            all_scenes = samples
-        else:
-            all_scenes = np.vstack((all_scenes,samples))
-        print("Processed scene {0}/{1}".format(i+1, len(scenes)-1))
-        ds = Dataset(samples.reshape((1, samples.shape[0])))       
-        ds.fa = cds.fa
-        ds.a = cds.a
-        differences["scene_{0}".format(i+1)] = ds
-        
-    avgs = all_scenes.mean(axis=0).reshape((1, all_scenes[0].shape[0]))
-    ds = Dataset(avgs)       
-    ds.fa = cds.fa        
-    ds.a = cds.a    
-        
-        
-    return differences, ds
-    
-    
-# Rolls data a random number of permutations on the longest axis.  For example,
-# the array [1,2,3,4,5,6] could be returned as something like [4,5,6,1,2,3].  The axis
-# with the highest dimensionality is used to roll on. 
+    returns the shifted array
+======================================================================================''' 
 def shift_subject(ds):
     
     num_samples = 1
@@ -495,7 +392,15 @@ def shift_subject(ds):
     
     return np.roll(ds, rand_perm, axis=axis)
     
-# Returns a completely randomly shuffled version of a dataset with shape (n, m)   
+    
+    
+'''====================================================================================
+    Returns a completely randomly shuffled version of a dataset with shape (n, m)
+    
+    ds      dataset with shape (n, m)
+    
+    returns the shuffled dataset
+======================================================================================''' 
 def randomize_subject(ds):
     ds_copy = ds.copy()
     total_samples = ds.shape[0] * ds.shape[1]
@@ -503,9 +408,18 @@ def randomize_subject(ds):
     np.random.shuffle(ds_copy)
     return ds_copy.reshape((ds.shape[0], ds.shape[1]))
     
-# Takes a dataset with confusion matrices at each voxel in the brain and computes either
-# the average accuracy accross all labels, or the accuracy for each label returning either
-# a scalar or a vector depending on the parameter "average"    
+    
+'''====================================================================================
+    Takes a dataset with confusion matrices at each voxel in the brain and computes 
+    either the average accuracy accross all labels, or the accuracy for each label 
+    returning either a scalar or a vector depending on the parameter "average"    
+    
+    ds       dataset containing an array of confusion matrices
+    average  (optional) Defaults to False.  If True, then the average of all of the 
+             confusion matrices is returned as a single scalar
+    
+    returns  an array or averaged scalar accuracy of the confusion matrics
+======================================================================================''' 
 def confusion_matrix_accuracies(ds, average=False):
     
     result = []

@@ -87,7 +87,7 @@ def tvalues(ds):
 
 
 # Run pyrcca's validate with a 50/50 split of training testing on samples within subjects    
-def rcca_validate(ds):
+def cca_validate(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
     split_point = int(num_samples * .5)
@@ -103,7 +103,7 @@ def rcca_validate(ds):
 
 # Run pyrcca's validate with a 50/50 split of training testing on samples within subjects
 # Return the maximum correlation from the validation set.    
-def rcca_validate_max(ds):
+def cca_validate_max(ds):
     num_subj = ds.shape[0]
     num_samples = ds.shape[2]
     split_point = int(num_samples * .5)
