@@ -4,21 +4,16 @@ Created on Wed May 25 12:46:17 2016
 
 @author: peugh.14
 """
-
+from mvpa2.suite import *
 import load_data as ld
 import dataset_utilities as du
 import pickle
 import matplotlib.pyplot as plt
 import time
-import timeit
-from mvpa2.suite import *
 import numpy as np
 import scipy.stats as stats
 import os
-from scipy.spatial.distance import pdist
-from scipy.spatial.distance import squareform
-from sklearn.manifold import MDS as MDS
-from scipy.cluster import hierarchy 
+
 
 PEARSON_RADIUS_2_P_THRESH = 0.1526
 CCA_RADIUS_2_P_THRESH = 0.384783972034
@@ -344,16 +339,16 @@ def scene_svm_cross_validation(cds=None, mask_path="../masks/aal_l_hippocampus_3
         cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu)
     
 
-    cds.a["scene_changes"] = ld.get_2010_scene_splits(as_ints=True)
+    cds.a["event_bounds"] = ld.get_2010_scene_splits(as_ints=True)
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
-    num_scenes = len(cds.a.scene_changes)
+    num_scenes = len(cds.a.event_bounds)
     ds_list = np.zeros((num_subj, num_voxels, num_scenes))
     prev_cutoff = 0
     ds_tup = ()
     
     # average correlations for each scene
-    for i, scene_cutoff in enumerate(cds.a.scene_changes):
+    for i, scene_cutoff in enumerate(cds.a.event_bounds):
         ds_list[:,:,i] = np.mean(cds.samples[:,:,prev_cutoff:scene_cutoff], axis=2)
         prev_cutoff = scene_cutoff
        
@@ -374,16 +369,14 @@ def scene_svm_cross_validation(cds=None, mask_path="../masks/aal_l_hippocampus_3
     print("Mean Accuracy: ", 1 - np.mean(cv_results))
     return cds, cv_results
 
-    
-
-    
+        
 
 def scene_double_correlation(mask_path="../masks/bigmask_3x3x3.nii", file_prefix="full_brain", 
                              n_cpu=40, num_subjects=34, radii = [2,3,4,5]):
     
     cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu)
     
-    cds.a["scene_changes"] = ld.get_2010_scene_splits(as_ints=True)
+    cds.a["event_bounds"] = ld.get_2010_scene_splits(as_ints=True)
     results = []
     
     for radius in radii:
@@ -415,16 +408,16 @@ def scene_svm_cross_validation_conf_mat(mask_path="../masks/bigmask_3x3x3.nii", 
     cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu)
     
     if scenes == None:
-        cds.a["scene_changes"] = ld.get_2010_scene_splits(as_ints=True)
+        cds.a["event_bounds"] = ld.get_2010_scene_splits(as_ints=True)
     else:
-        cds.a["scene_changes"] = scenes
+        cds.a["event_bounds"] = scenes
         
     results = dict()
     
     for radius in radii:
         ds = du.run_searchlight(cds, metric="scene_svm_cv_cm", radius=radius, n_cpu=n_cpu)
         num_voxels = ds.shape[1]
-        num_scenes = len(cds.a.scene_changes)
+        num_scenes = len(cds.a.event_bounds)
         accuracies = du.confusion_matrix_accuracies(ds.samples.T.reshape((num_voxels,num_scenes,num_scenes)))
         res = Dataset(np.array(accuracies))
         res.a = cds.a
@@ -438,99 +431,39 @@ def scene_svm_cross_validation_conf_mat(mask_path="../masks/bigmask_3x3x3.nii", 
     return results
     
 
-    
-def temp_script():
-    results = scene_svm_cross_validation_conf_mat(n_cpu=45, num_subjects=34, radii = [2,3,4])
-    print("Done with scene wise splitting")
-    scenes = [j for i in zip(np.arange(0,633-6,6),np.arange(6,633,6)) for j in i]
-    results2 = scene_svm_cross_validation_conf_mat(n_cpu=45, num_subjects=34, radii = [2,3,4], roi="full_brain_window_6", scenes=scenes)
-    return (results, results2)
-
-
 
 def scene_based_mds(num_subjects=34, mask_path="../masks/aal_l_fusiform_3x3x3.nii", n_cpu=34):    
     
     cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu)
-    cds.a["scene_changes"] = ld.get_2010_scene_splits()
+    cds.a["event_bounds"] = ld.get_2010_scene_splits()
 
-
-    num_subj = cds.shape[0]
-    num_voxels = cds.shape[1]
-    scenes = cds.a.scene_changes
-    num_scenes = len(scenes)
-    ds_list = np.zeros((num_subj, num_voxels, num_scenes-1))
-    prev_cutoff = 0
-    ds_tup = ()
+    return du.clustered_mds(cds)
     
-    # average correlations for each scene
-    for i in range(num_scenes - 1):
-        ds_list[:,:,i] = np.mean(cds.samples[:,:,scenes[i]:scenes[i+1]], axis=2)
-       
-    dsm_array = []    
-    for subj in ds_list:
-        
-        dsm_array.append(squareform(1 - pdist(subj.T, metric='correlation')))
-        
-    dsm = np.mean(dsm_array, axis=0)
-    mds = MDS(n_components=2, max_iter=3000, eps=1e-9, dissimilarity="precomputed", n_jobs=1)
-    coords = mds.fit(dsm).embedding_
     
-    plt.clf()
-    X, Y = coords[:,0], coords[:,1]
-    labels = np.arange(1,num_scenes)
-    fig = plt.figure(figsize=(10,8))
-    ax = fig.add_subplot(111)
-    plt.scatter(X,Y, marker='x')
-    for i, label in enumerate(np.arange(1,num_scenes)):
-        ax.annotate(label, (X[i],Y[i]))    
-        
-    plt.axis([np.min(X)*1.2, np.max(X)*1.2, np.min(Y)*1.2, np.max(Y)*1.2])
-    plt.title("MDS Scene Visualization")
-    plt.show()
-    
-    return dsm
-
 def show_dendrogram(cds=None, scenes=None, num_subjects=34, mask_path="../masks/aal_l_fusiform_3x3x3.nii", n_cpu=34):    
     
     if cds is None:      
         cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu)
     if scenes is not None:
-        cds.a["scene_changes"] = scenes
+        cds.a["event_bounds"] = scenes
     else:        
-        cds.a["scene_changes"] = ld.get_2010_scene_splits()
+        cds.a["event_bounds"] = ld.get_2010_scene_splits()
 
-
-    num_subj = cds.shape[0]
-    num_voxels = cds.shape[1]
-    scenes = cds.a.scene_changes
-    num_scenes = len(scenes)
-    ds_list = np.zeros((num_subj, num_voxels, num_scenes-1))
-    prev_cutoff = 0
-    ds_tup = ()
+    du.create_dendrogram(cds)
     
-    # average correlations for each scene
-    for i in range(num_scenes - 1):
-        ds_list[:,:,i] = np.mean(cds.samples[:,:,scenes[i]:scenes[i+1]], axis=2)
-       
-    Z = hierarchy.linkage(np.mean(ds_list, axis=0).T, metric='correlation')
-        
-    plt.figure(figsize=(14,8))
-    hierarchy.dendrogram(Z)
-    plt.show()
-    return Z
     
 def principal_voxel_svm(cds=None, scenes=None, mask_path="../masks/aal_l_fusiform_3x3x3.nii", n_cpu=20, num_subjects=5):  
     
     if cds == None:
         cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu, combine=False)
     if scenes is not None:
-        cds.a["scene_changes"] = scenes
+        cds.a["event_bounds"] = scenes
     else:        
-        cds.a["scene_changes"] = ld.get_2010_scene_splits()
+        cds.a["event_bounds"] = ld.get_2010_scene_splits()
     
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
-    scenes = cds.a.scene_changes
+    scenes = cds.a.event_bounds
     num_scenes = len(scenes) - 1
     ds_list = np.zeros((num_subj, num_voxels, num_scenes))
     prev_cutoff = 0
@@ -563,9 +496,9 @@ def get_average_scene_bounds(cds=None, scenes=None, mask_path="../masks/aal_l_fu
     if cds == None:
         cds = ld.get_2010_preprocessed_data(num_subjects=num_subjects, mask_path=mask_path, n_cpu=n_cpu, combine=True)
     if scenes is not None:
-        cds.a["scene_changes"] = scenes
+        cds.a["event_bounds"] = scenes
     else:        
-        cds.a["scene_changes"] = ld.get_2010_scene_splits()
+        cds.a["event_bounds"] = ld.get_2010_scene_splits()
         
     cds.a["clusters_per_iter"] = 80
     ds = du.run_searchlight(cds, metric='cluster_scenes_return_indices', n_cpu=n_cpu, radius=radius)

@@ -1,4 +1,14 @@
-# -*- coding: utf-8 -*-
+"""======================================================================================
+Description: 
+
+    This module contains functions which take as an input a single parameter:
+    a Dataset object with shape (s, v, t) where 
+            s is the number of subjects
+            v is the number of voxels in each subject
+            t is the constant number of time series for each voxel
+    Each of these functions computes a certain metric and returns either a 
+    single value or an array of values depending on the metric.
+======================================================================================="""
 
 from sklearn.cross_decomposition import CCA
 import numpy as np
@@ -11,19 +21,6 @@ from mvpa2.suite import SVM as SVM
 from mvpa2.suite import CrossValidation as CV
 from mvpa2.suite import NFoldPartitioner as NFoldPartitioner
 from mvpa2.misc.stats import ttest_1samp as ttest
-
-"""
-Description: 
-
-    This module contains functions which take as an input a single parameter:
-    a Dataset object with shape (s, v, t) where 
-            s is the number of subjects
-            v is the number of voxels in each subject
-            t is the constant number of time series for each voxel
-    Each of these functions computes a certain metric and returns either a 
-    single value or an array of values depending on the metric.
-"""
-
 
 
 '''
@@ -163,7 +160,7 @@ def timepoint_double_corr(ds):
     
     
 '''
-    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    Dataset must have cds.a["event_bounds"] Dataset attribute set as an array of integers
     These integers will act as the scene boundaries and must be between 1 and number of 
     samples.  This analysis is the same as the timepoint_isc metric, returning a second
     level average correlation, only using averaged scene activations instead of every 
@@ -173,12 +170,12 @@ def scene_based_double_corr(ds):
     
     num_subj = ds.shape[0]
     num_voxels = ds.shape[1]
-    num_scenes = len(ds.a.scene_changes)
+    num_scenes = len(ds.a.event_bounds)
     ds_list = np.zeros((num_subj, num_voxels, num_scenes-1))
     prev_cutoff = 0
 
     # average correlations for each scene
-    for i, scene_cutoff in enumerate(ds.a.scene_changes):
+    for i, scene_cutoff in enumerate(ds.a.event_bounds):
         ds_list[:,:,i] = np.mean(ds.samples[:,:,prev_cutoff:scene_cutoff], axis=2)
         prev_cutoff = scene_cutoff
 
@@ -196,7 +193,7 @@ def scene_based_double_corr(ds):
     return np.mean(correlation)
 
 '''
-    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    Dataset must have cds.a["event_bounds"] Dataset attribute set as an array of integers
     These integers will act as the scene boundaries and must be between 1 and number of 
     samples. This metric builds an SVM, using averaged scenes as the classes to predict
     N-fold (where N is cds.shape[0] -1, i.e. number of subjects) cross-validation
@@ -206,8 +203,8 @@ def scene_svm_cross_validation(cds):
     
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
-    num_scenes = len(cds.a.scene_changes) - 1
-    scenes = cds.a.scene_changes
+    num_scenes = len(cds.a.event_bounds) - 1
+    scenes = cds.a.event_bounds
     ds_list = np.zeros((num_subj, num_voxels, num_scenes))
     prev_cutoff = 0
     ds_tup = ()
@@ -233,7 +230,7 @@ def scene_svm_cross_validation(cds):
 
 
 '''
-    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    Dataset must have cds.a["event_bounds"] Dataset attribute set as an array of integers
     These integers will act as the scene boundaries and must be between 1 and number of 
     samples. This metric builds an SVM, using averaged scenes as the classes to predict
     N-fold (where N is cds.shape[0] -1, i.e. number of subjects) cross-validation
@@ -243,7 +240,7 @@ def scene_svm_cross_validation_confusion_matrix(cds):
     
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
-    scenes = cds.a.scene_changes
+    scenes = cds.a.event_bounds
     num_scenes = len(scenes)
     ds_list = np.zeros((num_subj, num_voxels, num_scenes-1))
     prev_cutoff = 0
@@ -273,7 +270,7 @@ def scene_svm_cross_validation_confusion_matrix(cds):
     return cv.ca.stats.matrix.flatten()
 
 '''
-    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    Dataset must have cds.a["event_bounds"] Dataset attribute set as an array of integers
     These integers will act as the scene boundaries and must be between 1 and number of 
     samples. Additionally, cds.a["clusters_per_iter"] must be set as an integer number
     between 1 and the (<total number of timepoints> / <number of scenes>), with somewhere 
@@ -287,7 +284,7 @@ def cluster_scenes(cds):
     
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
-    scenes = cds.a.scene_changes
+    scenes = cds.a.event_bounds
     clusters_per_iter = cds.a.clusters_per_iter
     n_scenes = len(scenes)
     iteration = 0
@@ -337,14 +334,14 @@ def cluster_scenes(cds):
     scene_samples = np.mean(cds.samples, axis=0).T
     
     # average correlations for each scene
-    for i, scene_cutoff in enumerate(cds.a.scene_changes):
+    for i, scene_cutoff in enumerate(cds.a.event_bounds):
         ds_list[i,:] = np.mean(scene_samples[prev_cutoff:scene_cutoff,:], axis=0)
         prev_cutoff = scene_cutoff
     
     return np.mean([np.corrcoef(samples[i],ds_list[i])[0,1] for i in range(n_scenes)])
 
 '''    
-    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    Dataset must have cds.a["event_bounds"] Dataset attribute set as an array of integers
     These integers will act as the scene boundaries and must be between 1 and number of 
     samples. Additionally, cds.a["clusters_per_iter"] must be set as an integer number
     between 1 and the (<total number of timepoints> / <number of scenes>), with somewhere 
@@ -358,7 +355,7 @@ def cluster_scenes_track_indices(cds):
     
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
-    scenes = cds.a.scene_changes
+    scenes = cds.a.event_bounds
     clusters_per_iter = cds.a.clusters_per_iter
     n_scenes = len(scenes)
     iteration = 0
@@ -415,10 +412,10 @@ def cluster_scenes_track_indices(cds):
     
     indices = np.array(samples)[:,0]    
     
-    return euclidean(indices, cds.a.scene_changes)
+    return euclidean(indices, cds.a.event_bounds)
 
 '''   
-    Dataset must have cds.a["scene_changes"] Dataset attribute set as an array of integers
+    Dataset must have cds.a["event_bounds"] Dataset attribute set as an array of integers
     These integers will act as the scene boundaries and must be between 1 and number of 
     samples. Additionally, cds.a["clusters_per_iter"] must be set as an integer number
     between 1 and the (<total number of timepoints> / <number of scenes>), with somewhere 
@@ -431,7 +428,7 @@ def cluster_scenes_return_indices(cds):
     
     num_subj = cds.shape[0]
     num_voxels = cds.shape[1]
-    scenes = cds.a.scene_changes
+    scenes = cds.a.event_bounds
     clusters_per_iter = cds.a.clusters_per_iter
     n_scenes = len(scenes)
     iteration = 0

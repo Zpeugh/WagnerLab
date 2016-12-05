@@ -13,6 +13,10 @@ from mvpa2.measures.searchlight import sphere_searchlight
 import matplotlib.patches as mpatches
 from mvpa2.misc.stats import ttest_1samp as ttest
 from measures import *
+from scipy.spatial.distance import pdist
+from scipy.spatial.distance import squareform
+from scipy.cluster import hierarchy 
+from sklearn.manifold import MDS
 
 
 
@@ -136,11 +140,11 @@ def plot_colored_isc_vs_isi(isc_data, isi_data, title, xlabel='Intersubject Corr
                         'Intersubject Information'
     save                (optional) Boolean variable for whether or not you wish to save
                         the file
+    scale_axis          (optional) If True the x and Y axis will have the same scale, IF
+                        not then they will be scaled automatically
     filename            Required if save=True. The name of the file to save the figure as
 ======================================================================================''' 
-def plot_thresholded_isc_vs_isi(isc_data, isi_data, title, isc_p_thresh, isi_p_thresh, 
-                                xlabel='Intersubject Correlation', ylabel='Intersubject Information', 
-                                save=False, filename=None, scale_axis=False):
+def plot_thresholded_isc_vs_isi(isc_data, isi_data, title, isc_p_thresh, isi_p_thresh, xlabel='Intersubject Correlation', ylabel='Intersubject Information', save=False, filename=None, same_scale_axis=False):
    
     voxels = isc_data.fa.voxel_indices    
     
@@ -181,7 +185,8 @@ def plot_thresholded_isc_vs_isi(isc_data, isi_data, title, isc_p_thresh, isi_p_t
     plt.title(title, fontsize=15)
     plt.xlabel(xlabel,fontsize=15)
     plt.ylabel(ylabel, fontsize=15)
-    if scale_axis:   
+    
+    if same_scale_axis:   
         ax_min = np.min(isi_data) - 0.05
         ax_max = np.max(isi_data) + 0.05
         plt.axis([-0.05, ax_max, -0.05, ax_max])
@@ -430,4 +435,104 @@ def confusion_matrix_accuracies(ds, average=False):
     else:    
         return result
      
-  
+'''====================================================================================
+    Takes a Dataset object and performs hierarchical clustering using Pearson's
+    correlation as the metric.  The clusters are created on the time axis.
+    
+    cds       the Dataset object with shape (s, v, t) where 
+                  s is the number of subjects
+                  v is the number of voxels in each subject
+                  t is the constant number of time series for each voxel  
+    scenes    (optional) It is assumed that the original cluster boundaries to average
+              into are in the dataset attribute cds.a["event_bounds"].  However, if this
+              is not the case, users can supply their own cluster boundaries by passing
+              an array for this value.  For example, passing
+              clusters= np.arange(cds.samples.shape[2]) would cluster beginning with all
+              timepoints treated as their own cluster.
+             
+    filename  If this is not None, then the dendrogram is saved to disk.
+    
+    displays  the dendrogram results of the clustering.
+======================================================================================'''
+def create_dendrogram(cds, clusters=None, filename=None):    
+    
+    
+    num_subj = cds.shape[0]
+    num_voxels = cds.shape[1]
+    
+    if clusters == None:
+        clusters = cds.a.event_bounds
+        
+    num_scenes = len(clusters)
+    ds_list = np.zeros((num_subj, num_voxels, num_scenes-1))
+    prev_cutoff = 0
+    ds_tup = ()
+    
+    # average correlations for each scene
+    for i in range(num_scenes - 1):
+        ds_list[:,:,i] = np.mean(cds.samples[:,:,clusters[i]:clusters[i+1]], axis=2)
+       
+    Z = hierarchy.linkage(np.mean(ds_list, axis=0).T, metric='correlation')
+        
+    fig = plt.figure(figsize=(14,8))
+    hierarchy.dendrogram(Z)
+    plt.show()
+    if filename is not None:
+        fig.savefig(filename)
+        
+        
+'''====================================================================================
+    Takes a Dataset object and Multidimensional Scaling using Pearson's
+    correlation as the metric.
+    
+    cds       the Dataset object with shape (s, v, t) where 
+                  s is the number of subjects
+                  v is the number of voxels in each subject
+                  t is the constant number of time series for each voxel  
+    scenes    (optional) It is assumed that the original cluster boundaries to average
+              into are in the dataset attribute cds.a["event_bounds"].  However, if this
+              is not the case, users can supply their own cluster boundaries by passing
+              an array for this value.  For example, passing
+              clusters= np.arange(cds.samples.shape[2]) would cluster beginning with all
+              timepoints treated as their own cluster.
+             
+    filename  If this is not None, then the dendrogram is saved to disk.
+    
+    displays  the mds results
+======================================================================================'''       
+def clustered_mds(cds, clusters=None, filename=None):    
+
+    num_subj = cds.shape[0]
+    num_voxels = cds.shape[1]
+    clusters = cds.a.event_bounds
+    num_clusters = len(clusters)
+    ds_list = np.zeros((num_subj, num_voxels, num_clusters-1))
+    prev_cutoff = 0
+    ds_tup = ()
+    
+    # average correlations for each scene
+    for i in range(num_clusters - 1):
+        ds_list[:,:,i] = np.mean(cds.samples[:,:,clusters[i]:clusters[i+1]], axis=2)
+       
+    dsm_array = []    
+    for subj in ds_list:        
+        dsm_array.append(squareform(1 - pdist(subj.T, metric='correlation')))
+        
+    dsm = np.mean(dsm_array, axis=0)
+    mds = MDS(n_components=2, max_iter=3000, eps=1e-9, dissimilarity="precomputed", n_jobs=1)
+    coords = mds.fit(dsm).embedding_
+    
+    plt.clf()
+    X, Y = coords[:,0], coords[:,1]
+    labels = np.arange(1,num_clusters)
+    fig = plt.figure(figsize=(10,8))
+    ax = fig.add_subplot(111)
+    plt.scatter(X,Y, marker='x')
+    for i, label in enumerate(np.arange(1,num_clusters)):
+        ax.annotate(label, (X[i],Y[i]))    
+        
+    plt.axis([np.min(X)*1.2, np.max(X)*1.2, np.min(Y)*1.2, np.max(Y)*1.2])
+    plt.title("MDS Scene Visualization")
+    plt.show()
+    
+    return dsm
