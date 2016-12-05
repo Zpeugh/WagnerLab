@@ -4,7 +4,7 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 
 ## Directory Descriptions
 
-###fmri/wagner_2010/
+###fmri/wagner_2010/ ###
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; All of the results and scripts applicable to Dr. Dylan Wagner's 2010 study on the movie <em>Matchstick Men</em>
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>load_data.py</strong><br />
@@ -20,10 +20,10 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Graphs and plots of some results
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>results/nifti/</strong><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NIFTI files of results<br />
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NIFTI files of results</p><br />
 -
 
-### fmri/fmri/
+### fmri/fmri/ ###
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The general utility scripts with methods for pre and post processing fMRI timeseries data
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>fmri_preprocessing.py</strong><br />
@@ -33,12 +33,12 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; This module holds all of the functions to run analyses on preprocessed Datasets
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>measures.py</strong><br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; All of the methods in this file are used in searchlight analyses<br />
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All of the methods in this file are used in searchlight analyses</p><br />
 -
 
-### fmri/masks/
+### fmri/masks/ ###
 Directory with NIFTI masks
 -
 
-### fmri/setup.py
+### fmri/setup.py ###
 Run this script from this directory to temporarily add all modules from the fmri/fmri directory into your workspace
