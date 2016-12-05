@@ -21,7 +21,6 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>results/nifti/</strong><br />
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; NIFTI files of results</p><br />
--
 
 ### fmri/fmri/ ###
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; The general utility scripts with methods for pre and post processing fMRI timeseries data
@@ -33,12 +32,10 @@ multivariate searchlight driven approaches for intersubject correlations and oth
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; This module holds all of the functions to run analyses on preprocessed Datasets
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>measures.py</strong><br />
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;All of the methods in this file are used in searchlight analyses</p><br />
--
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; All of the methods in this file are used in searchlight analyses<br />
 
 ### fmri/masks/ ###
 Directory with NIFTI masks
--
 
 ### fmri/setup.py ###
 Run this script from this directory to temporarily add all modules from the fmri/fmri directory into your workspace
